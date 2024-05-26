@@ -23,7 +23,8 @@ $(PREBUILT_DIR):
 	mkdir -p $(PREBUILT_DIR)
 
 ${HDR_TOOL}: $(wildcard $(HDR_TOOL_DIR)/*) $(FW_COMMON_DIR)/ota_hdr.h
-	cmake -S $(HDR_TOOL_DIR) -B $(HDR_TOOL_BUILD_DIR)
+	# Make sure we don't try to use SDCC to build the HDR_TOOL_DIR!
+	CC=cc cmake -S $(HDR_TOOL_DIR) -B $(HDR_TOOL_BUILD_DIR)
 	cmake --build $(HDR_TOOL_BUILD_DIR)
 
 $(PREBUILT_DIR)/$(IMAGE_NAME).bin: $(BUILD_DIR)/$(IMAGE_NAME).bin
