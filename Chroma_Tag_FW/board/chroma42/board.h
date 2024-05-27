@@ -67,6 +67,7 @@ Image slots: 21
 #define EEPROM_IMG_SECTORS          (EEPROM_IMG_EACH / EEPROM_ERZ_SECTOR_SZ)
 #define IMAGE_SLOTS                 ((EEPROM_SIZE - EEPROM_IMG_START)/EEPROM_IMG_EACH)
 
+#define screenInitGPIO(x)
 #include "../boardCommon.h"
 
 #endif

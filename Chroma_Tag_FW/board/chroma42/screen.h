@@ -11,9 +11,13 @@ extern __bit gRedPass;
 extern __bit gDrawFromFlash;
 #define SCREEN_EXPECTS_VCOM
 
+// Physical
 #define SCREEN_WIDTH             400L
 #define SCREEN_HEIGHT            300L
 
+// Logical
+#define DISPLAY_WIDTH             SCREEN_WIDTH 
+#define DISPLAY_HEIGHT            SCREEN_HEIGHT
 #define SCREEN_BYTE_FILL         0x66  //white for normal mode
 
 #define PIXEL_BLACK              3

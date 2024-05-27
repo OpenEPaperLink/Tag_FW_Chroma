@@ -146,7 +146,7 @@ void afterFlashScreenSaver()
 
 void DrawTagMac() 
 {
-   epdpr("MAC: %s",gMacString);
+   epdpr("Tag MAC: %s",gMacString);
 }
 
 void DrawFwVer()
@@ -165,12 +165,14 @@ void DrawSplashScreen()
    SetDrawingDefaults();
    DisplayLogo();
 
-#if DISPLAY_WIDTH == 296
-// 2.9"
-   epdpr("OpenEPaperLink\n\n");
+#if DISPLAY_WIDTH <= 296
+// 2.9" or smaller
+   epdpr("Starting . . .\n\n");
 #elif DISPLAY_WIDTH >= 640
-// 7.4" or wider
+// 7.4 or wider
    epdpr("\t\b\nStarting . . .\n\n\b");
+#else
+   epdpr("\f\t\bStarting . . .\n\b\n");
 #endif
    DrawFwVer();
    epdpr("\nVBat: %d mV\n",gBootBattV);
@@ -252,41 +254,40 @@ void DrawAPFound()
 #else
    epdpr("Waiting for data . . .\n");
 #endif
-   gSaveX = gCharX;
-   gSaveY = gCharY;
-   epdpr("\nFound the following AP:\n");
-   epdpr("AP MAC: %02X%02X",APmac[7],APmac[6]);
+   epdpr("\nFound the following AP:");
+   gBmpY = gCharY;
+   epdpr("\nAP MAC: %02X%02X",APmac[7],APmac[6]);
    epdpr("%02X%02X",APmac[5],APmac[4]);
    epdpr("%02X%02X",APmac[3],APmac[2]);
-   epdpr("%02X%02X\n",APmac[1],APmac[0]);
-   epdpr("Ch: %d RSSI: %d LQI: %d\n",gCurrentChannel,mLastRSSI,mLastLqi);
+   epdpr("%02X%02X",APmac[1],APmac[0]);
+// Draw Ant centered between the end of the MAC address and left side
+   gBmpX = gCharX + (DISPLAY_WIDTH - gCharX - receive[0]) / 2;
+   epdpr("\nCh: %d RSSI: %d LQI: %d\n",gCurrentChannel,mLastRSSI,mLastLqi);
 
-#if DISPLAY_WIDTH > 296
-// wider than 2.9"
-   epdpr("\nVBat: %d mV, Txing: %d mV, Displaying: %d mV\n\n",
-         gBattV,gTxBattV,gRefreshBattV);
-// Don't show FW for BETAs, addOverlay will show it
-   DrawFwVer();
-   epdpr("\n\nTag ");
-   DrawTagMac();
-   epdpr("\n");
-#ifndef DISABLE_BARCODES
-   printBarcode(gMacString,gSaveX,gCharY);
-#endif
-
-#ifndef LEAN_VERSION
-// Display receive on left
-   gBmpX = (gSaveX - receive[0]) / 2;
-   gBmpY = (DISPLAY_HEIGHT - receive[1]) / 2;
-   loadRawBitmap(receive);
-#endif
-#else
+#if DISPLAY_WIDTH <=  296
 // 2.9" or smaller
 // Don't have room for all three battery readings, display the lowest
    DisplayLowestVbat();
-#ifndef FW_VERSION_SUFFIX
-// Don't show FW for BETAs, addOverlay will show it
    DrawFwVer();
+#else
+// wider than 2.9"
+#if DISPLAY_WIDTH >= 640
+// 7.4" or wider
+   epdpr("\nVBat: %d mV, Txing: %d mV, Displaying: %d mV\n\n",
+         gBattV,gTxBattV,gRefreshBattV);
+#else
+// between 2.9" and 7.4"
+   epdpr("\nVBat: %d mV, Txing: %d mV\nDisplaying: %d mV\n\n",
+         gBattV,gTxBattV,gRefreshBattV);
+#endif
+   DrawFwVer();
+   epdpr(gDoubleSpace);
+   DrawTagMac();
+   epdpr("\n");
+   printBarcode(gMacString,gCharX,gCharY);
+
+#ifndef LEAN_VERSION
+   loadRawBitmap(receive);
 #endif
 #endif
 }
@@ -308,25 +309,27 @@ void DrawNoAP()
 
 #if DISPLAY_WIDTH > 296
    epdpr("\f\bNo AP found :(\n\b\n");
-   epdpr("\fWe'll try again in a little while . . .");
+   epdpr("\fWe'll try again in a little while . . .\n\n");
 // receive bitmap is 56 x 56, center it on the display
-   gBmpX = (DISPLAY_WIDTH - 56)/2;
-   gBmpY = (DISPLAY_HEIGHT - 56)/2;
+   gSaveX = gCharX;
+   gBmpY = gCharY;
 #else
+// 2.9" or smaller
    epdpr("\bNo AP found :(\n\b\n");
    epdpr("We'll try again in a");
-// receive bitmap is 56 x 56, center between the end of the current line
-// and the right side of the display
+   gSaveX = gCharX;
    gBmpY = gCharY;
-   gBmpX = gCharX + (DISPLAY_WIDTH - gCharX - 56)/2;
-   if(gBmpX & 0x7) {
-   // round back to byte boundary
-      gBmpX -= (gBmpX & 0x7);
-   }
    epdpr("\nlittle while . . .");
 #endif
 
 #ifndef LEAN_VERSION
+// receive bitmap is 56 x 56, center between the end of the current line
+// and the right side of the display
+   gBmpX = gSaveX + (DISPLAY_WIDTH - gSaveX - 56)/2;
+   if(gBmpX & 0x7) {
+   // round back to byte boundary
+      gBmpX -= (gBmpX & 0x7);
+   }
    loadRawBitmap(receive);
 // failed bitmap is 48 x 48, adjust starting position to
 // overlay the receive ICON
