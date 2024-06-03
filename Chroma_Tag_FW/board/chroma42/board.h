@@ -4,9 +4,16 @@
 #include "soc.h"
 #include "u1.h"
 
-#define CHROMA74
-#define BOARD_NAME "Chroma42"
+#define CHROMA42
 #define HW_TYPE    0x83
+
+#ifdef UC_8176
+#define HW_VARIANT      1
+#define BOARD_NAME "Chroma42_8176"
+#else
+#define UC_8154
+#define BOARD_NAME "Chroma42"
+#endif
 
 extern const char * __code gBoardName;
 

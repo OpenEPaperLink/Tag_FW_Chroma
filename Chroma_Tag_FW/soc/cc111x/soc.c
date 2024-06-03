@@ -135,11 +135,16 @@ void boardGetOwnMac()
 // 
 // i.e. Multiple incompatible hardware variations that need different FW 
 // images, but otherwise are compatible can share a single HWID and the 
-// AP but the AP can parse the "extra" bits in the MAC address to 
-// select the correct OTA image.
+// AP can parse the "extra" bits in the MAC address to select the 
+// correct OTA image.
 
    mSelfMac[5] = gTempBuf320[0] - 'A';
    mSelfMac[4] = gTempBuf320[1] - 'A';
+#ifdef HW_VARIANT
+   mSelfMac[5] |= HW_VARIANT << 5;
+   LOGA("HW variant %d\n",HW_VARIANT);
+#endif
+
 #endif
    spr(gMacString,"%02X%02X",mSelfMac[7],mSelfMac[6]);
    spr(gMacString+4,"%02X%02X",mSelfMac[5],mSelfMac[4]);

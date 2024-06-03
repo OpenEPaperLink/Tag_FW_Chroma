@@ -158,12 +158,10 @@ void DoPass()
             eepromRead(gEEpromAdr,blockbuffer,BYTES_PER_PART);
             gEEpromAdr += BYTES_PER_PART;
          }
-#if 0
          for(i = 0; i < LINES_PER_PART; i++) {
             addOverlay();
             gDrawY++;
          }
-#endif
       }
       else {
          xMemSet(blockbuffer,0,BYTES_PER_PART);
@@ -172,7 +170,8 @@ void DoPass()
             gDrawY++;
          }
       }
-
+#ifdef UC_8154
+// Dual controllers, 2 bits per pixel for B&W, 1 for Red/Yellow
       for(i = 0; i < BYTES_PER_PART; i++) {
          while(Mask != 0) {
             if(gRedPass) {
@@ -214,10 +213,37 @@ void DoPass()
          }
          Mask = 0x80;
       }
+#elif defined(UC_8176)
+// Single controller, 1 bits per pixel for B&W, 1 for Red/Yellow
+      for(i = 0; i < BYTES_PER_PART; i++) {
+         while(Mask != 0) {
+            Value <<= 1;
+            if(blockbuffer[i] & Mask) {
+               Value |= 1;
+            }
+            if(Mask & 0b00000001) {
+            // Value ready, send it
+               screenByteTx(Value);
+            }
+
+            Mask >>= 1; // next bit
+            gDrawX++;
+            if(gDrawX == SCREEN_WIDTH) {
+               gDrawX = 0;
+            }
+         }
+         Mask = 0x80;
+      }
+#else
+#error "Unknown EPD controller"
+#endif
+
       gPartY += LINES_PER_PART;
    }
    einkDeselect();
+#ifdef UC_8154
    einkDeselect1();
+#endif
 }
 
 void DrawScreen(DrawingFunction DrawIt)
