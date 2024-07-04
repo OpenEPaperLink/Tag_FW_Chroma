@@ -56,9 +56,6 @@ void sleepForMsec(uint32_t units)
       .srcinc = 1,         //increment source
    };
    uint8_t forever;
-      
-// our units are 31.25msec, caller used msec
-   units = mathPrvDiv32x16(units,31);
 
    if(units == 0) {
       forever = 1;
@@ -66,6 +63,13 @@ void sleepForMsec(uint32_t units)
       dmaDesc.srcAddrLo = (uint8_t)PM3_BUF;
    }
    else {
+	// minimum sleep time is 62.5ms
+		if(units < 63) {
+			units = 63;
+		}
+
+	// our units are 31.25msec, caller used msec
+		units = mathPrvDiv32x16((units << 2),125);
       forever = 0;
       dmaDesc.srcAddrHi = ((uint16_t)PM2_BUF) >> 8;
       dmaDesc.srcAddrLo = (uint8_t)PM2_BUF;
@@ -102,7 +106,6 @@ void sleepForMsec(uint32_t units)
          now = units;
          units = 0;
       }
-      now += 2;   //counter starts at 2 due to how we init it
       
    // enable WOR irq
       WORIRQ = forever ? 0x00 : 0x10;
