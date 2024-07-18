@@ -148,12 +148,12 @@ void radioSetChannel(uint8_t ch)
    if(ch >= FIRST_866_CHAN && ch < FIRST_866_CHAN + NUM_866_CHANNELS) {
    // Base Frequency = 863.999756   
    // total channels  6 (0 -> 5) (CHANNR 0 -> 15)
-   // Channel 100 / CHANNR 0: 863.999756
-   // Channel 101 / CHANNR 3: 865.006 Mhz
-   // Channel 102 / CHANNR 6: 866.014 Mhz
-   // Channel 103 / CHANNR 9: 867.020 Mhz
-   // Channel 104 / CHANNR 12: 868.027 Mhz
-   // Channel 105 / CHANNR 15: 869.034 Mhz
+   // Channel 100 / CHANNR 0:  863.999756 Mhz
+   // Channel 101 / CHANNR 3:  865.006653 Mhz
+   // Channel 102 / CHANNR 6:  866.013550 Mhz
+   // Channel 103 / CHANNR 9:  867.020447 Mhz
+   // Channel 104 / CHANNR 12: 868.027344 Mhz
+   // Channel 105 / CHANNR 15: 869.034241 Mhz
       COMMS_LOG("866");
       FREQ2 = 0x21;    // Frequency Control Word, High Byte 
       FREQ1 = 0x3b;    // Frequency Control Word, Middle Byte 
@@ -165,12 +165,12 @@ void radioSetChannel(uint8_t ch)
    // Dmitry's orginal code used 25 channels in 915 Mhz (0 -> 24, CHANNR 0 -> 72)
    // We don't want to have to scan that many so for OEPL we'll just use 6
    // to match 866.
-   // Channel 200 / CHANNR 0: 903.000 Mhz
-   // Channel 201 / CHANNR 12: 907.027 Mhz
-   // Channel 202 / CHANNR 24: 911.054 Mhz
-   // Channel 203 / CHANNR 24: 915.083 Mhz
-   // Channel 204 / CHANNR 48: 919.110 Mhz
-   // Channel 205 / CHANNR 60: 923.138 Mhz
+   // Channel 200 / CHANNR 0:  902.999756 Mhz
+   // Channel 201 / CHANNR 12: 907.027344 Mhz
+   // Channel 202 / CHANNR 24: 911.054932 Mhz
+   // Channel 203 / CHANNR 36: 915.082520 Mhz
+   // Channel 204 / CHANNR 48: 919.110107 Mhz
+   // Channel 205 / CHANNR 60: 923.137695 Mhz
       COMMS_LOG("915");
       FREQ2 = 0x22;  // Frequency Control Word, High Byte 
       FREQ1 = 0xbb;  // Frequency Control Word, Middle Byte 

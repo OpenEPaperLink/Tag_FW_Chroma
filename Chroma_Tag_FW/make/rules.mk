@@ -35,6 +35,7 @@ $(PREBUILT_DIR)/$(IMAGE_NAME).hex: $(BUILD_DIR)/main.ihx
 
 $(PREBUILT_DIR)/$(OTA_IMAGE_NAME).bin: $(PREBUILT_DIR)/$(IMAGE_NAME).bin
 	$(HDR_TOOL) $<
+	md5sum $@
 
 $(BUILD_DIR)/$(IMAGE_NAME).bin: $(BUILD_DIR)/main.ihx
 	objcopy $< $@ -I ihex -O binary
