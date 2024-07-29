@@ -9,7 +9,7 @@
 #include "settings.h"
 #include "logging.h"
 
-void boardGetOwnMac();
+void LoadGlobalsFromEEPROM();
 
 char __xdata gMacString[17];
 __bit gEEpromFailure;
@@ -61,37 +61,20 @@ void boardInitStage2(void)
       while(1);
    }
 #endif
-#ifdef SCREEN_EXPECTS_VCOM
-   if(prvReadSetting(0x23,&mScreenVcom,1) < 0) {
-      NV_DATA_LOG("failed to get VCOM\n");
-#if BUILD == chroma42r
-      mScreenVcom = 8;     // a sane value .8v from one example panel
-#else
-      mScreenVcom = 0x28;  //a sane value
+   LoadGlobalsFromEEPROM();
+#ifdef RELEASE_BUILD
+   if(gEEpromFailure) {
+   // Not good!  Try to set defaults so we can communicate
+      NV_DATA_LOG("First call to LoadGlobalsFromEEPROM failed\n");
+      ResetFactoryNVRAM();
+   // Try to load globals again
+      LoadGlobalsFromEEPROM();
+      if(gEEpromFailure) {
+         NV_DATA_LOG("Second call to LoadGlobalsFromEEPROM failed\n");
+      }
+   }
 #endif
-   }
-   else {
-      NV_DATA_LOG("VCOM: 0x%02x\n", mScreenVcom);
-   }
-#endif
-   
-   if(prvReadSetting(0x12,&mAdcSlope,2) < 0) {
-      NV_DATA_LOG("failed to get ADC slope\n");
-      mAdcSlope = 2470; //a sane value
-   }
-   else {
-      NV_DATA_LOG("ADC slope %d\n",mAdcSlope);
-   }
 
-   if(prvReadSetting(0x09,&mAdcIntercept,2) < 0) {
-      NV_DATA_LOG("failed to get ADC intercept\n");
-      mAdcIntercept = 755; //a sane value
-   }
-   else {
-      NV_DATA_LOG("ADC mAdcIntercept %d\n",mAdcIntercept);
-   }
-
-   boardGetOwnMac();
    powerDown(INIT_EEPROM);
 // On some board (Chroma29 for example) we don't know how to deal
 // with the display's GPIO until we know the SN.
@@ -100,17 +83,33 @@ void boardInitStage2(void)
 }
 
 // JM 10339094 B
-void boardGetOwnMac()
+void LoadGlobalsFromEEPROM()
 {
 // Set mSelfMac from the device SN stored in the factory "NVRAM".
 // Note: apparently some boards have a 6 character SN and some have a 7.
 // Only the first 6 charcters are used.
-   xMemSet(gTempBuf320,0x00,sizeof(gTempBuf320));
    
-   if(prvReadSetting(0x2a,gTempBuf320,7) < 0 && prvReadSetting(1,gTempBuf320,6) < 0) {
-      gEEpromFailure = true;
+   gEEpromFailure = true;  // Assume the worse !
+      
+   if(prvReadSetting(0x2a,gTempBuf320,7) < 0 && 
+      prvReadSetting(1,gTempBuf320,6) < 0) 
+   {  // Couldn't get SN from factory EEPROM, set default
+      NV_DATA_LOG("failed to get SN\n");
       return;
    }
+// Got the SN
+#ifdef RELEASE_BUILD
+   xMemSet(&gTempBuf320[16],0x00,4);
+   if(xMemEqual(&gTempBuf320[2],&gTempBuf320[16],4)) {
+   // SN is the default SN
+      NV_DATA_LOG("SN is default\n");
+      if(!xMemEqual((const void __xdata*) &gDefaultEEPROM[8],&gTempBuf320[16],4)) {
+      // The default SN has been patched in flash, reset NVRAM to update SN
+         NV_DATA_LOG("gDefaultEEPROM updated\n");
+         return;
+      }
+   }
+#endif
 
    mSelfMac[7] = 0x44;
    mSelfMac[6] = 0x67;
@@ -121,12 +120,6 @@ void boardGetOwnMac()
    gTempBuf320[2] = 0;
    LOGA("SN %s%02x%02x",gTempBuf320,mSelfMac[3],mSelfMac[2]);
    LOGA("%02x%02x\n",mSelfMac[1],mSelfMac[0]);
-#if 0
-// Dimtry's original code ignored the first two characters of the SN, but
-// they seem useful to me.
-   mSelfMac[5] = 0x4b;
-   mSelfMac[4] = 0x7a;
-#else
 // Since the first 2 characters are known to be upper case ASCII subtract
 // 'A' from the value to convert it from a 7 bit value to a 5 bit value.
 // 
@@ -145,11 +138,31 @@ void boardGetOwnMac()
    LOGA("HW variant %d\n",HW_VARIANT);
 #endif
 
-#endif
    spr(gMacString,"%02X%02X",mSelfMac[7],mSelfMac[6]);
    spr(gMacString+4,"%02X%02X",mSelfMac[5],mSelfMac[4]);
    spr(gMacString+8,"%02X%02X",mSelfMac[3],mSelfMac[2]);
    spr(gMacString+12,"%02X%02X",mSelfMac[1],mSelfMac[0]);
+#ifdef SCREEN_EXPECTS_VCOM
+   if(prvReadSetting(0x23,&mScreenVcom,1) < 0) {
+      NV_DATA_LOG("failed to get VCOM\n");
+      return;
+   }
+   NV_DATA_LOG("VCOM: 0x%02x\n", mScreenVcom);
+#endif
+   
+   if(prvReadSetting(0x12,&mAdcSlope,2) < 0) {
+      NV_DATA_LOG("failed to get ADC slope\n");
+      return;
+   }
+   NV_DATA_LOG("ADC slope %d\n",mAdcSlope);
+
+   if(prvReadSetting(0x09,&mAdcIntercept,2) < 0) {
+      NV_DATA_LOG("failed to get ADC intercept\n");
+      return;
+   }
+   NV_DATA_LOG("ADC mAdcIntercept %d\n",mAdcIntercept);
+
+   gEEpromFailure = false;
 }
 
 

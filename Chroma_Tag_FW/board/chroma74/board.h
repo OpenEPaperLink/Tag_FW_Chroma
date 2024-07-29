@@ -9,6 +9,7 @@
 #define HW_TYPE    0x80
 
 extern const char * __code gBoardName;
+extern const uint8_t __code gDefaultEEPROM[];
 
 //eeprom spi
 #define EEPROM_SIZE              0x00100000L

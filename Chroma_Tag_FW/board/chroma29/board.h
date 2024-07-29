@@ -13,6 +13,7 @@
 #endif
 
 extern const char * __code gBoardName;
+extern const uint8_t __code gDefaultEEPROM[];
 
 //eeprom spi
 #define EEPROM_SIZE              0x0020000L

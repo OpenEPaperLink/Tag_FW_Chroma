@@ -1105,15 +1105,22 @@ void ValidateFWImage()
       OTA_LOG("  ImageType %s\n",pHdr->ImageType);
 
       Adr += sizeof(OtaHeader);
-      if(pHdr->HdrVersion != OTA_HDR_VER) {
-         OTA_LOG("HdrVersion %d not supported\n",pHdr->HdrVersion);
-         gUpdateErr = OTA_ERR_HDR_VER;
+      if(xMemEqual(pHdr->ImageType,(void __xdata *)gBoardName,6) != 0) {
+       // ImageType doesn't start with "Chroma"
+         OTA_LOG("Not OTA image\n");
+         gUpdateErr = OTA_ERR_INVALID_HDR;
          break;
       }
 
       if(xMemEqual(pHdr->ImageType,(void __xdata *)gBoardName,sizeof(BOARD_NAME)) != 0) {
          OTA_LOG("fw not for this board type\n");
          gUpdateErr = OTA_ERR_WRONG_BOARD;
+         break;
+      }
+
+      if(pHdr->HdrVersion != OTA_HDR_VER) {
+         OTA_LOG("HdrVersion %d not supported\n",pHdr->HdrVersion);
+         gUpdateErr = OTA_ERR_HDR_VER;
          break;
       }
 

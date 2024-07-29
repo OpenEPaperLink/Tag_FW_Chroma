@@ -16,6 +16,7 @@
 #endif
 
 extern const char * __code gBoardName;
+extern const uint8_t __code gDefaultEEPROM[];
 
 #if BUILD == chroma42y
 #define BWY

@@ -1,10 +1,14 @@
 #include "soc.h"
-#include "board.h"
 #include "cpu.h"
 #include "u1.h"
 #include "powermgt.h"
 #include "printf.h"
 #include "settings.h"
+#include "asmUtil.h"
+#include "oepl-definitions.h"
+#define __packed
+#include "oepl-proto.h"
+#include "syncedproto.h"
 #include "logging.h"
 
 // Port 0 pins
@@ -152,6 +156,17 @@ void PrintCfg(const char __code *Msg)
    LOG("U1Csr 0x%x\n",gU1Csr);
 }
 #endif
+
+
+void ResetFactoryNVRAM()
+{
+#ifdef RELEASE_BUILD
+   eepromErase(0,1); // Erase Factory EEPROM
+   xMemCopy((void *)blockbuffer,(const void __xdata*)gDefaultEEPROM,sizeof(gDefaultEEPROM));
+   eepromWrite(0,blockbuffer,sizeof(gDefaultEEPROM));
+#endif
+}
+
 
 
 
