@@ -7,8 +7,6 @@ ifeq ($(BUILD),chroma74y)
   BOARD=chroma74
 else ifeq ($(BUILD),chroma74r)
   BOARD=chroma74
-else ifeq ($(BUILD),chroma42r)
-  BOARD=chroma42
 else ifeq ($(BUILD),chroma42_8176)
   BOARD=chroma42
   SCREEN_SRC = screen_8176.c

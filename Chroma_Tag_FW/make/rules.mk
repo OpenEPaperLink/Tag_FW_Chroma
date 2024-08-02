@@ -35,7 +35,7 @@ $(PREBUILT_DIR)/$(IMAGE_NAME).hex: $(BUILD_DIR)/main.ihx
 
 $(PREBUILT_DIR)/$(OTA_IMAGE_NAME).bin: $(PREBUILT_DIR)/$(IMAGE_NAME).bin
 	$(HDR_TOOL) $<
-	md5sum $@
+
 
 $(BUILD_DIR)/$(IMAGE_NAME).bin: $(BUILD_DIR)/main.ihx
 	objcopy $< $@ -I ihex -O binary
@@ -50,7 +50,7 @@ $(BUILD_DIR)/$(IMAGE_NAME).bin: $(BUILD_DIR)/main.ihx
 oepl-proto.h:
 	git submodule update --init
 
-.PHONY: all clean veryclean flash reset release debug
+.PHONY: all clean veryclean flash reset release debug build_info
 
 all: $(BUILD_DIR) oepl-proto.h $(BUILD_DIR)/$(IMAGE_NAME).bin
 
@@ -68,10 +68,14 @@ reset:
 	cc-tool --reset
 
 release: $(PREBUILT_DIR) ${HDR_TOOL} all $(RELEASE_BINS) 
+	(cd $(PREBUILT_DIR);git add $(RELEASE_BINS))
 
 DEPFILES := $(SOURCES:%.c=$(BUILD_DIR)/%.d)
 
 debug:
 	@echo "PREBUILT_DIR=$(PREBUILT_DIR)"
+
+build_info:
+	@echo "[{\"OTA_BIN\":\"$(OTA_BIN)\",\"FW_VER\":\"${FW_VER}\"}]"
 
 include $(wildcard $(DEPFILES))
