@@ -9,7 +9,6 @@ extern uint8_t __xdata mScreenVcom;
 extern int8_t __xdata mCurTemperature;
 extern __bit gRedPass;
 extern __bit gDrawFromFlash;
-#define SCREEN_EXPECTS_VCOM
 
 // Physical
 #define SCREEN_WIDTH             400L
