@@ -11,7 +11,7 @@
 #include "settings.h"
 #include "logging.h"
 
-// uc8151 like commands
+// uc8159 like commands
 #define CMD_PANEL_SETTING 0x00
 #define CMD_POWER_SETTING 0x01
 #define CMD_POWER_OFF 0x02
@@ -33,6 +33,7 @@
 #define CMD_LOWER_POWER_DETECT 0x51
 #define CMD_TCON_SETTING 0x60
 #define CMD_RESOLUTION_SETTING 0x61
+#define CMD_SPI_FLASH_CONTROL 0x65
 #define CMD_REVISION 0x70
 #define CMD_STATUS 0x71
 #define CMD_AUTO_MEASUREMENT_VCOM 0x80
@@ -808,8 +809,8 @@ static const uint8_t __code gPwrUpEpd[] = {
 };
 
 static const uint8_t __code gSetupEpd[] = {
-   2,0x65,
-   0,
+   2,CMD_SPI_FLASH_CONTROL,
+   0, // disabled
 
    3,CMD_PANEL_SETTING,
    0x8f,0x80,

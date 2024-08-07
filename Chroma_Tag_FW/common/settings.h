@@ -3,10 +3,17 @@
 
 #include <stdint.h>
 
-#define FW_VERSION 0x0009        // version numbers
 #define RELEASE_BUILD            // include gDefaultEEPROM support
+#define FW_VERSION 0x0010        // version numbers
+
+#define SFDP_DISABLED         // Disable SFDP to save 1538 bytes.
+
+#ifdef RELEASE_BUILD
+   #define DEBUGMAIN                // parts in the main loop
+   #define BAUD_115200              // Defaults to 1 megabaud this is not defined
 // #define FW_VERSION_SUFFIX "-BETA" // suffix, like -RC1 or whatever.
-#define BAUD_115200              // Defaults to 1 megabaud this is not defined
+#else
+// #define BAUD_115200              // Defaults to 1 megabaud this is not defined
 // #define DEBUGBLOCKS              // uncomment to enable extra debug information on the block transfers
 // #define FORCE_IMG_DL             // force tag to re-download every upload
 // #define DEBUGPROTO               // debug protocol
@@ -18,7 +25,7 @@
 // #define DEBUGGUI                 // debug GUI drawing (enabled)
 // #define DEBUGSETTINGS            // debug settings module (preferences/eeprom)
 // #define DEBUGEEPROM              // eeprom-related debug messages
-// #define DEBUG_NV_DATA            // debug eeprom-related data accesses
+#define DEBUG_NV_DATA            // debug eeprom-related data accesses
 // #define DEBUG_SLEEP              // debug sleeping
 //#define DEBUG_RX_DATA            // display subgig rx packets
 //#define DEBUG_TX_DATA            // display subgig tx packets
@@ -31,8 +38,7 @@
 // #define DISABLE_BARCODES   // barcodes are optional
 // #define ISDEBUGBUILD          // disable clearing and resaving of settings on every reset
 
-#define SFDP_DISABLED         // Disable SFDP to save 1538 bytes.
-// #define DISABLE_UI         // when you need to debug and are out of flash
+#define DISABLE_UI         // when you need to debug and are out of flash
 // #define DISABLE_DISPLAY    // don't actually update the display
 
 #if defined(DEBUG_RX_DATA) || defined(DEBUG_TX_DATA)
@@ -42,6 +48,7 @@
 #if defined(DISABLE_UI) && !defined(LEAN_VERSION)
 #define LEAN_VERSION
 #define DISABLE_BARCODES
+#endif
 #endif
 
 #define SETTINGS_STRUCT_VERSION 0x01
