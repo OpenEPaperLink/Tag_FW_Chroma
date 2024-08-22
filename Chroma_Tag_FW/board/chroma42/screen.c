@@ -300,13 +300,6 @@ static void screenInitIfNeeded()
    
    SendEpdTbl(gSetupEpd);
 
-   einkSelect();
-   einkSelect1();
-   screenPrvSendCommand(CMD_VCOM_DC_SETTING);
-   screenByteTx(mScreenVcom);
-   einkDeselect();
-   einkDeselect1();
-   
    LOG_CONFIG("screenInitIfNeeded");
 }
 
