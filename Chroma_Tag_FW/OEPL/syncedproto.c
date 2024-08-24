@@ -777,6 +777,15 @@ static bool downloadFWUpdate(const struct AvailDataInfo *__xdata avail)
    // start, or restart the transfer from 0. Copy data from the 
    // AvailDataInfo struct, and the struct intself. 
    // This forces a new transfer
+      if(avail->dataSize > OTA_UPDATE_SIZE) {
+         OTA_LOG("too big %ld\n",avail->dataSize);
+         sendXferComplete();
+         gUpdateErr = OTA_ERR_INVALID_HDR;
+         fastNextCheckin = true;
+         wakeUpReason = WAKEUP_REASON_FAILED_OTA_FW;
+         showFailedUpdate();
+         return false;
+      }
       curBlock.blockId = 0;
       xMemCopy8(&curBlock.ver,&avail->dataVer);
       curBlock.type = avail->dataType;
@@ -807,6 +816,7 @@ static bool downloadFWUpdate(const struct AvailDataInfo *__xdata avail)
       }
    }
 // no more data, download complete
+   sendXferComplete();
    return true;
 }
 
@@ -864,6 +874,11 @@ static bool downloadImageDataToEEPROM(const struct AvailDataInfo *__xdata avail)
       }
 
       xferImgSlot = nextImgSlot;
+      if(avail->dataSize > EEPROM_IMG_EACH) {
+         LOG("image too big\n");
+         sendXferComplete();
+         return false;
+      }
 
       eepromErase(getAddressForSlot(xferImgSlot),EEPROM_IMG_SECTORS);
       powerDown(INIT_EEPROM);
@@ -1052,7 +1067,6 @@ bool processAvailDataInfo(struct AvailDataInfo *__xdata avail)
          powerUp(INIT_EEPROM);
          if(downloadFWUpdate(avail)) {
             OTA_LOG("Download complete\n");
-            sendXferComplete();
 
             powerUp(INIT_EEPROM);
             ValidateFWImage();
