@@ -7,6 +7,9 @@
 #define FONT_HEIGHT  16
 #define FONT_WIDTH   10
 
+#define xstr(s) str(s)
+#define str(s) #s
+
 extern __bit gWinColor;
 extern __bit gLargeFont;
 extern __bit gDirectionY;

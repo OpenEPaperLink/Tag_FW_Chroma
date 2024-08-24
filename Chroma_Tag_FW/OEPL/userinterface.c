@@ -152,9 +152,9 @@ void DrawTagMac()
 void DrawFwVer()
 {
 #ifdef FW_VERSION_SUFFIX
-   epdpr(BOARD_NAME " v%04X" FW_VERSION_SUFFIX,fwVersion);
+   epdpr(xstr(BUILD) " v%04X" FW_VERSION_SUFFIX,fwVersion);
 #else
-   epdpr(BOARD_NAME " v%04X",fwVersion);
+   epdpr(xstr(BUILD) " v%04X",fwVersion);
 #endif
 }
 
@@ -261,7 +261,11 @@ void DrawAPFound()
    epdpr("%02X%02X",APmac[3],APmac[2]);
    epdpr("%02X%02X",APmac[1],APmac[0]);
 // Draw Ant centered between the end of the MAC address and left side
+#ifndef LEAN_VERSION
    gBmpX = gCharX + (DISPLAY_WIDTH - gCharX - receive[0]) / 2;
+#else
+   gBmpX = gCharX + (DISPLAY_WIDTH - gCharX) / 2;
+#endif
    epdpr("\nCh: %d RSSI: %d LQI: %d\n",gCurrentChannel,mLastRSSI,mLastLqi);
 
 #if DISPLAY_WIDTH <=  296

@@ -10,7 +10,11 @@ extern void DumpHex(const uint8_t *__xdata a, const uint16_t __xdata l);
 #define LOGE(format, ... ) pr(format,## __VA_ARGS__)
 
 // LOG logs only when debugging is enable
+#ifdef RELEASE_BUILD
+#define LOG(format, ... )
+#else
 #define LOG(format, ... ) pr(format,## __VA_ARGS__)
+#endif
 
 #ifdef DEBUGEEPROM
    #define EEPROM_LOG(format, ... ) pr(format,## __VA_ARGS__)

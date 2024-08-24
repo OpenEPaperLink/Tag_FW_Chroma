@@ -42,7 +42,6 @@ const uint8_t __code gChannelList[] = {
 uint8_t *rebootP;
 
 const uint16_t __code fwVersion = FW_VERSION;
-const char * __code gBoardName = BOARD_NAME;
 uint16_t __xdata gUpdateFwVer;
 uint8_t __xdata gUpdateErr;
 
@@ -347,11 +346,11 @@ void main()
    ADCRead(ADC_CHAN_VDD_3);
    gBootBattV = ADCScaleVDD(gRawA2DValue);
 
-   LOGA("\n%s OEPL v%04x"
+   LOGA("\n" xstr(BUILD) " OEPL v%04x"
 #ifdef FW_VERSION_SUFFIX
         FW_VERSION_SUFFIX
 #endif
-        ", compiled " __DATE__" " __TIME__ "\n",gBoardName,fwVersion);
+        ", compiled " __DATE__" " __TIME__ "\n",fwVersion);
 
    boardInitStage2();
 

@@ -158,14 +158,13 @@ void PrintCfg(const char __code *Msg)
 #endif
 
 
+#ifdef RELEASE_BUILD
 void ResetFactoryNVRAM()
 {
-#ifdef RELEASE_BUILD
    eepromErase(0,1); // Erase Factory EEPROM
-   xMemCopy((void *)blockbuffer,(const void __xdata*)gDefaultEEPROM,sizeof(gDefaultEEPROM));
-   eepromWrite(0,blockbuffer,sizeof(gDefaultEEPROM));
-#endif
+   eepromWrite(0,(const void __xdata*)gDefaultEEPROM,sizeof(gDefaultEEPROM));
 }
+#endif
 
 
 

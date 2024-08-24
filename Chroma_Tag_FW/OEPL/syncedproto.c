@@ -130,11 +130,11 @@ void DumpHex(const uint8_t *__xdata Data, const uint16_t __xdata Len)
    uint16_t i;
    for(i = 0; i < Len; i++) {
       if(i != 0 && (i & 0xf) == 0) {
-         LOG("\n");
+         LOGA("\n");
       }
-      LOG("%02x ",Data[i]);
+      LOGA("%02x ",Data[i]);
    }
-   LOG("\n");
+   LOGA("\n");
 }
 
 bool checkCRC(const void *p, const uint8_t len) 
@@ -369,7 +369,7 @@ static void blockRxLoop(const uint32_t timeout)
       }
    }
 #ifndef DEBUGBLOCKS
-   LOG("\n");
+   LOGA("\n");
 #endif
    radioRxEnable(false);
    radioRxFlush();
@@ -832,9 +832,9 @@ static bool downloadImageDataToEEPROM(const struct AvailDataInfo *__xdata avail)
    // non zero) then start looking from slot 0, to prevent the image being 
    // overwritten when we do an OTA update.
    // sh: I think there's a bug here which only occurs when the next if
-   // is trun and nextImgSlot is the last slot
+   // is turn and nextImgSlot is the last slot
       if((avail->dataTypeArgument & 0xFC) != 0x00) {
-         LOG("Changing startingSlot from %d to 0\n",startingSlot);
+         LOG("startingSlot %d -> 0\n",startingSlot);
          DumpHex((const uint8_t *__xdata)avail,sizeof(struct AvailDataInfo));
          startingSlot = 0;
       }
@@ -1105,14 +1105,15 @@ void ValidateFWImage()
       OTA_LOG("  ImageType %s\n",pHdr->ImageType);
 
       Adr += sizeof(OtaHeader);
-      if(xMemEqual(pHdr->ImageType,(void __xdata *)gBoardName,6) != 0) {
+      if(!xMemEqual(pHdr->ImageType,(void __xdata *)xstr(BUILD),6)) {
        // ImageType doesn't start with "Chroma"
          OTA_LOG("Not OTA image\n");
          gUpdateErr = OTA_ERR_INVALID_HDR;
          break;
       }
 
-      if(xMemEqual(pHdr->ImageType,(void __xdata *)gBoardName,sizeof(BOARD_NAME)) != 0) {
+      Bytes2Read = xStrLen(pHdr->ImageType);
+      if(!xMemEqual(pHdr->ImageType,(void __xdata *)xstr(BUILD),Bytes2Read)) {
          OTA_LOG("fw not for this board type\n");
          gUpdateErr = OTA_ERR_WRONG_BOARD;
          break;
