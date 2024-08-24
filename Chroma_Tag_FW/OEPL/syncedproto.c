@@ -763,7 +763,6 @@ static bool getDataBlock(const uint16_t blockSize)
 }
 
 static uint16_t __xdata dataRequestSize;
-static uint16_t __xdata otaSize;
 
 static bool downloadFWUpdate(const struct AvailDataInfo *__xdata avail) 
 {
@@ -782,8 +781,8 @@ static bool downloadFWUpdate(const struct AvailDataInfo *__xdata avail)
       xMemCopy8(&curBlock.ver,&avail->dataVer);
       curBlock.type = avail->dataType;
       xMemCopyShort(&xferDataInfo,(void *)avail,sizeof(struct AvailDataInfo));
-      eepromErase(EEPROM_UPDATA_AREA_START,OTA_UPDATE_SIZE / EEPROM_ERZ_SECTOR_SZ);
-      otaSize = xferDataInfo.dataSize;
+      eepromErase(EEPROM_UPDATA_AREA_START,
+                  EEPROM_UPDATE_AREA_LEN / EEPROM_ERZ_SECTOR_SZ);
    }
 
    while(xferDataInfo.dataSize) {
