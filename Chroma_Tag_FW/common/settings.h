@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define RELEASE_BUILD            // include gDefaultEEPROM support
-#define FW_VERSION 0x0010        // version numbers
+#define FW_VERSION 0x0011        // version number
 
 #define SFDP_DISABLED         // Disable SFDP to save 1538 bytes.
 
@@ -25,7 +25,7 @@
 // #define DEBUGGUI                 // debug GUI drawing (enabled)
 // #define DEBUGSETTINGS            // debug settings module (preferences/eeprom)
 // #define DEBUGEEPROM              // eeprom-related debug messages
-#define DEBUG_NV_DATA            // debug eeprom-related data accesses
+// #define DEBUG_NV_DATA            // debug eeprom-related data accesses
 // #define DEBUG_SLEEP              // debug sleeping
 //#define DEBUG_RX_DATA            // display subgig rx packets
 //#define DEBUG_TX_DATA            // display subgig tx packets
@@ -38,7 +38,7 @@
 // #define DISABLE_BARCODES   // barcodes are optional
 // #define ISDEBUGBUILD          // disable clearing and resaving of settings on every reset
 
-#define DISABLE_UI         // when you need to debug and are out of flash
+// #define DISABLE_UI         // when you need to debug and are out of flash
 // #define DISABLE_DISPLAY    // don't actually update the display
 
 #if defined(DEBUG_RX_DATA) || defined(DEBUG_TX_DATA)

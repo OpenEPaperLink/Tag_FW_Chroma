@@ -7,20 +7,20 @@
 #define CHROMA42
 #define HW_TYPE    0x83
 
-#ifdef UC_8176
-#define HW_VARIANT      1
-#define BOARD_NAME "Chroma42_8176"
+#ifndef HW_VARIANT
+   #define BWR
+   #define UC_8154
+#elif HW_VARIANT == 1
+   #define BWY
+   #define UC_8176
+#elif HW_VARIANT == 2
+   #define BWR
+   #define UC_8176
 #else
-#define UC_8154
-#define BOARD_NAME "Chroma42"
+   #error "HW_VARIANT Invalid"
 #endif
 
-extern const char * __code gBoardName;
 extern const uint8_t __code gDefaultEEPROM[];
-
-#if BUILD == chroma42y
-#define BWY
-#endif
 
 //eeprom spi
 #define EEPROM_SIZE              0x00100000L
