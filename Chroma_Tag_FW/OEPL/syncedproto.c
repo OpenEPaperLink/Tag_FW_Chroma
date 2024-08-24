@@ -1113,7 +1113,7 @@ void ValidateFWImage()
       OTA_LOG("OTA Header:\n");
       OTA_LOG("  CRC 0x%04lx\n",pHdr->Crc);
       OTA_LOG("  ImageVer 0x%04x\n",pHdr->ImageVer);
-      OTA_LOG("  ImageLen %d\n",pHdr->ImageLen);
+      OTA_LOG("  ImageLen %u\n",pHdr->ImageLen);
       OTA_LOG("  HdrVersion %d\n",pHdr->HdrVersion);
       OTA_LOG("  ImageType %s\n",pHdr->ImageType);
 
@@ -1126,7 +1126,9 @@ void ValidateFWImage()
       }
 
       Bytes2Read = xStrLen(pHdr->ImageType);
-      if(!xMemEqual(pHdr->ImageType,(void __xdata *)xstr(BUILD),Bytes2Read)) {
+      if(Bytes2Read != xStrLen((void __xdata *) xstr(BUILD)) || 
+         !xMemEqual(pHdr->ImageType,(void __xdata *)xstr(BUILD),Bytes2Read)) 
+      {
          OTA_LOG("fw not for this board type\n");
          gUpdateErr = OTA_ERR_WRONG_BOARD;
          break;
