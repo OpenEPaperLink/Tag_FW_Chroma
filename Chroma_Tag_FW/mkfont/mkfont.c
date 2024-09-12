@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <errno.h>
+#include <getopt.h>
+
+#include "bahnschrift20.h"
 
 #ifdef _WIN32
 int optind = 1;
@@ -23,6 +26,11 @@ int getopt(int argc,char **argv,char *opts);
 #define FONT_WIDTH   10
 
 #define OPTION_STRING  "lv"
+static struct option gLongOpts[] = {
+   {"bahnschrift20",no_argument,NULL,0},
+   {0,0,0,0}
+};
+
 
 #define LOG(format, ... ) fprintf(stderr,format,## __VA_ARGS__)
 #define LOGV(format, ... ) if(gVerbose) LOG(format,## __VA_ARGS__)
@@ -35,17 +43,28 @@ bool gVerbose = false;
 int PackFont(void);
 int ListFont(void);
 void FillFontData(void);
+void ListVfwFont(int OptNdx);
+
+bool gList = false;
 
 int main(int argc, char *argv[])
 {
    int Ret = 0; // Assume the best
    int Option;
-   bool bList = false;
+   int OptNdx = -1;
 
-   while(Ret == 0 && (Option = getopt(argc,argv,OPTION_STRING)) != -1) {
+   while(Ret == 0) {
+      Option = getopt_long(argc,argv,OPTION_STRING,gLongOpts,&OptNdx);
+      if(Option == -1) {
+         break;
+      }
       switch(Option) {
+         case 0:  // long option
+            printf("%s font selected\n",gLongOpts[OptNdx].name);
+            break;
+
          case 'l':
-            bList = true;
+            gList = true;
             break;
 
          case 'v':
@@ -62,8 +81,13 @@ int main(int argc, char *argv[])
       printf("Usage: mkfont [-v] > <output_file>\n");
       printf("        mkfont -l\n");
    }
-   else if(bList) {
-      ListFont();
+   else if(gList) {
+      if(OptNdx != -1) {
+         ListVfwFont(OptNdx);
+      }
+      else {
+         ListFont();
+      }
    }
    else {
       PackFont();
@@ -236,52 +260,58 @@ void FillFontData()
    }
 }
 
-#ifdef _WIN32
-/*
- * getopt a wonderful little function that handles the command line.
- * available courtesy of AT&T.
- */
-int getopt(int argc,char **argv,char *opts)
+void ListVfwFont(int OptNdx)
 {
-    static int sp = 1;
-    register int c;
-    register char *cp;
+   uint8_t *cp;
+   char Char;
+   int FontHeight;
+   uint32_t Bits;
+   uint32_t Mask;
 
-    if(sp == 1)
-        if(optind >= argc ||
-           argv[optind][0] != '-' || argv[optind][1] == '\0')
-            return(EOF);
-        else if(strcmp(argv[optind], "--") == 0) {
-            optind++;
-            return(EOF);
-        }
-    optopt = c = argv[optind][sp];
-    if(c == ':' || (cp=strchr(opts, c)) == NULL) {
-        printf("%s: illegal option -- '%c'",argv[0],(char) c);
-        if(argv[optind][++sp] == '\0') {
-            optind++;
-            sp = 1;
-        }
-        return('?');
-    }
-    if(*++cp == ':') {
-        if(argv[optind][sp+1] != '\0')
-            optarg = &argv[optind++][sp+1];
-        else if(++optind >= argc) {
-            printf("%s: option '%c' requires an argument -- ", argv[0],c);
-            sp = 1;
-            return('?');
-        } else
-            optarg = argv[optind++];
-        sp = 1;
-    } else {
-        if(argv[optind][++sp] == '\0') {
-            sp = 1;
-            optind++;
-        }
-        optarg = NULL;
-    }
-    return(c);
+   switch(OptNdx) {
+      case 0:
+         cp = bahnschrift20;
+         FontHeight = 18;
+         break;
+   }
+
+   for(Char = '!'; Char < 0x7f; Char++) {
+      if(*cp != Char) {
+         printf("Char 0x%x, '%c' is not defined in font\n",Char,Char);
+         continue;
+      }
+      cp++;
+      printf("Char 0x%x, '%c'\n",Char,Char);
+      int Width = *cp++;
+      printf("Width %d\n",Width);
+
+      for(int i = 0; i < FontHeight; i++) {
+      // Collect bits for this row
+
+         if(Width < 9) {
+            Bits = *cp++ << 24;
+         }
+         else if(Width < 17) {
+            Bits = (cp[0] << 24) | (cp[1] << 16);
+            cp += 2;
+         }
+         else if(Width < 25) {
+            Bits = (cp[0] << 24) | (cp[1] << 16) | cp[2] << 8;
+            cp += 3;
+         }
+         else {
+            Bits = (cp[0] << 24) | (cp[1] << 16) | cp[2] << 8 | cp[3];
+            cp += 4;
+         }
+         printf("Line %2d: ",i);
+         printf("0x%08x |",Bits);
+         Mask = 0x80000000 >> Width;
+         for(int j = 0; j < Width; j++) {
+            printf("%c",(Bits & Mask) ? '*' : ' ');
+            Mask <<= 1;
+         }
+         printf("|\n");
+      }
+   }
 }
-#endif
 
