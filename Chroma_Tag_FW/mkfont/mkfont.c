@@ -7,6 +7,12 @@
 #include <getopt.h>
 
 #include "bahnschrift20.h"
+#include "bahnschrift30.h"
+#include "tahoma9.h"
+#include "calibrib16.h"
+#include "calibrib30.h"
+#include "refsan12.h"
+#include "twcondensed20.h"
 
 #ifdef _WIN32
 int optind = 1;
@@ -27,8 +33,16 @@ int getopt(int argc,char **argv,char *opts);
 
 #define OPTION_STRING  "lv"
 static struct option gLongOpts[] = {
+   {"all",no_argument,NULL,0},
+   {"legacy",no_argument,NULL,0},
    {"bahnschrift20",no_argument,NULL,0},
-   {0,0,0,0}
+   {"bahnschrift30",no_argument,NULL,0},
+   {"tahoma9",no_argument,NULL,0},
+   {"calibrib16",no_argument,NULL,0},
+   {"calibrib30",no_argument,NULL,0},
+   {"refsan12",no_argument,NULL,0},
+   {"twcondensed20",no_argument,NULL,0},
+   {NULL,0,0,0}
 };
 
 
@@ -60,7 +74,6 @@ int main(int argc, char *argv[])
       }
       switch(Option) {
          case 0:  // long option
-            printf("%s font selected\n",gLongOpts[OptNdx].name);
             break;
 
          case 'l':
@@ -77,16 +90,43 @@ int main(int argc, char *argv[])
       }
    }
 
+   if(!gList && OptNdx == -1) {
+   // Font not specified
+      Ret = EINVAL;
+   }
+
    if(Ret != 0) {
-      printf("Usage: mkfont [-v] > <output_file>\n");
-      printf("        mkfont -l\n");
+      printf("Usage:\n");
+      printf("  Generate packed_font header:\n");
+      printf("    mkfont [-v] --<font> > <output_file>\n");
+      printf("      -v: add verbose comments\n");
+      printf("  Generate ASCII dump of font:\n");
+      printf("    mkfont -l\n");
+      printf("    mkfont -l --<font>\n\n");
+      printf("  Supported fonts:\n");
+      for(int i = 0; gLongOpts[i].name != NULL; i++) {
+         printf("    --%s\n",gLongOpts[i].name);
+      }
    }
    else if(gList) {
-      if(OptNdx != -1) {
-         ListVfwFont(OptNdx);
+      if(OptNdx == -1) {
+         for(int i = 1; gLongOpts[i].name != NULL; i++) {
+            printf("%s font:\n",gLongOpts[i].name);
+            if(i == 1) {
+               ListFont();
+            }
+            else {
+               ListVfwFont(i);
+            }
+         }
+      }
+      else if(OptNdx == 0) {
+         printf("%s font:\n",gLongOpts[OptNdx].name);
+         ListFont();
       }
       else {
-         ListFont();
+         printf("%s font:\n",gLongOpts[OptNdx].name);
+         ListVfwFont(OptNdx);
       }
    }
    else {
@@ -264,26 +304,62 @@ void ListVfwFont(int OptNdx)
 {
    uint8_t *cp;
    char Char;
-   int FontHeight;
+   int FontHeight = 0;
    uint32_t Bits;
    uint32_t Mask;
 
    switch(OptNdx) {
-      case 0:
+      case 2:
          cp = bahnschrift20;
          FontHeight = 18;
          break;
+
+      case 3:
+         cp = bahnschrift30;
+         FontHeight = 27;
+         break;
+
+      case 4:
+         cp = tahoma9;
+         FontHeight = 10;
+         break;
+
+      case 5:
+         cp = calibrib16;
+         FontHeight = 10;
+         break;
+
+      case 6:
+         cp = calibrib30;
+         FontHeight = 10;
+         break;
+
+      case 7:
+         cp = refsan12;
+         FontHeight = 10;
+         break;
+
+      case 8:
+         cp = twcondensed20;
+         FontHeight = 10;
+         break;
+   }
+
+   if(FontHeight == 0) {
+      printf("%s#%d: Internal error\n",__FUNCTION__,__LINE__);
+      return;
    }
 
    for(Char = '!'; Char < 0x7f; Char++) {
       if(*cp != Char) {
-         printf("Char 0x%x, '%c' is not defined in font\n",Char,Char);
+         printf("Char 0x%x, '%c' is not defined in %s font\n",Char,Char,
+                gLongOpts[OptNdx].name);
          continue;
       }
       cp++;
-      printf("Char 0x%x, '%c'\n",Char,Char);
       int Width = *cp++;
-      printf("Width %d\n",Width);
+      FontHeight = *cp++;
+      printf("Char 0x%x, '%c', %d X %d:\n",Char,Char,Width,FontHeight);
 
       for(int i = 0; i < FontHeight; i++) {
       // Collect bits for this row
@@ -303,9 +379,9 @@ void ListVfwFont(int OptNdx)
             Bits = (cp[0] << 24) | (cp[1] << 16) | cp[2] << 8 | cp[3];
             cp += 4;
          }
+         Mask = 0x80000000 >> (Width - 1);
          printf("Line %2d: ",i);
          printf("0x%08x |",Bits);
-         Mask = 0x80000000 >> Width;
          for(int j = 0; j < Width; j++) {
             printf("%c",(Bits & Mask) ? '*' : ' ');
             Mask <<= 1;
