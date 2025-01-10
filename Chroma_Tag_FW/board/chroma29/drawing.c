@@ -178,6 +178,8 @@ void DoPass()
 
       for(i = 0; i < BYTES_PER_PART; i++) {
          while(Mask != 0) {
+#ifndef HW_VARIANT
+         // Number of bits / pixel depends on the color being written
             if(gRedPass) {
             // red/yellow pixel, 1 bit
                Value <<= 1;
@@ -200,6 +202,24 @@ void DoPass()
                   screenByteTx(Value);
                }
             }
+#elif HW_VARIANT == 1
+         // Number of bits / pixel is always 1
+            Value <<= 1;
+            if(gRedPass) {
+               if(blockbuffer[i] & Mask) {
+                  Value |= 1;
+               }
+            }
+            else {
+               if(!(blockbuffer[i] & Mask)) {
+                  Value |= 1;
+               }
+            }
+            if(Mask & 0b00000001) {
+            // Value ready, send it
+               screenByteTx(Value);
+            }
+#endif
 
             Mask >>= 1; // next bit
          }

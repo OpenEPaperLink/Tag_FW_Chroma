@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define RELEASE_BUILD            // include gDefaultEEPROM support
-#define FW_VERSION 0x0011        // version number
+#define FW_VERSION 0x0012        // version number
 
 #define SFDP_DISABLED         // Disable SFDP to save 1538 bytes.
 
@@ -13,7 +13,7 @@
    #define BAUD_115200              // Defaults to 1 megabaud this is not defined
 // #define FW_VERSION_SUFFIX "-BETA" // suffix, like -RC1 or whatever.
 #else
-// #define BAUD_115200              // Defaults to 1 megabaud this is not defined
+#define BAUD_115200              // Defaults to 1 megabaud this is not defined
 // #define DEBUGBLOCKS              // uncomment to enable extra debug information on the block transfers
 // #define FORCE_IMG_DL             // force tag to re-download every upload
 // #define DEBUGPROTO               // debug protocol
@@ -33,9 +33,10 @@
 // #define DEBUG_AP_SEARCH          // log ap search details
 // #define DEBUG_FORCE_OVERLAY      // force low bat and no AP icons to display
 // #define DEBUG_CHIP_CFG   // log chip configuration
-// #define LEAN_VERSION // disable bitmaps to save code space
+#define DEBUG_SCREEN_INIT  // log chip initialization
+#define LEAN_VERSION // disable bitmaps to save code space
 
-// #define DISABLE_BARCODES   // barcodes are optional
+#define DISABLE_BARCODES   // barcodes are optional
 // #define ISDEBUGBUILD          // disable clearing and resaving of settings on every reset
 
 // #define DISABLE_UI         // when you need to debug and are out of flash

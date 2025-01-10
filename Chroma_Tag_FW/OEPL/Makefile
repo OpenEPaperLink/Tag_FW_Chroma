@@ -10,6 +10,10 @@ else ifeq ($(BUILD),chroma42_8176)
   BOARD=chroma42
   SCREEN_SRC = screen_8176.c
   FLAGS += -DHW_VARIANT=1
+else ifeq ($(BUILD),chroma29_8151)
+  BOARD=chroma29
+  SCREEN_SRC = screen_8151.c
+  FLAGS += -DHW_VARIANT=1
 else
   BOARD=$(BUILD)
 endif
