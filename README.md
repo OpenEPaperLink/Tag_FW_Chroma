@@ -5,6 +5,7 @@ manufactured by Display Data.
 
 The firmware allows the tags to be used with the [OpenEPaperLink project](https://github.com/OpenEPaperLink/OpenEPaperLink).
 
+For more info see the main projects [Wiki](https://github.com/OpenEPaperLink/OpenEPaperLink/wiki/Chroma-Series-SubGhz-Tags).
 
 ## Firmware binaries
 
@@ -14,10 +15,11 @@ make changes.
 Currently the following tags are supported and support for the Chroma21 is planned:
 
 | Tag | SN Format | BUILD | Binary filename | 
-| :-: |:-:| :-:| :-:|
+| - |-| -| -|
 | Chroma29 | "JA0xxxxxxxB"<br>or<br>"JC0xxxxxxxB" | chroma29 | chroma29_full_\<version\>.bin |
-| Chroma29 | "JA1xxxxxxxC" | chroma42_8176 | chroma42_8176_full_\<version\>.bin |
-| Chroma42 | "JC0xxxxxxxB"<br>or<br>"JH0xxxxxxxB" | chroma42 | chroma42_full_\<version\>.bin |
+| Chroma29 | "JA1xxxxxxxC" | chroma29_8151 | chroma29_8151_full_\<version\>.bin |
+| Chroma42 | "JC0xxxxxxxB" | chroma42 | chroma42_full_\<version\>.bin |
+| Chroma42 | "JH1xxxxxxxB" | chroma42_8176 | chroma42_8176_full_\<version\>.bin |
 | Chroma74 | "JM1xxxxxxxB" | chroma74y | chroma74y_full_\<version\>.bin |
 | Chroma74 | "JL1xxxxxxxB" | chroma74r | chroma74r_full_\<version\>.bin |
 
