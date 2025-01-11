@@ -7,6 +7,7 @@ import hashlib
 
 builds={'chroma74y':{'hw_id' : '80','version' : 'version','md5': 'md5'}
     ,'chroma29':{'hw_id' : '82','version': 'version','md5': 'md5'}
+    ,'chroma29_8151':{'hw_id' : '82','version': 'version_1','md5': 'md5_1'}
     ,'chroma42':{'hw_id' : '83','version': 'version','md5': 'md5'}
     ,'chroma42_8176':{'hw_id' : '83','version': 'version_1','md5': 'md5_1'}
 }
