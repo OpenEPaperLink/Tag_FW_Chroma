@@ -88,11 +88,11 @@ static const uint8_t __code gPwrUpEpd[] = {
 static const uint8_t __code gSetupEpd[] = {
    3,
    CMD_PANEL_SETTING,   // Panel Setting (PSR)
-   0xa3, // 10 1 0 0 0 1 1
+   0xaf, // 10 1 0 1 1 1 1
          // ^^ ^ ^ ^ ^ ^ ^- RST_N controller not reset
          //  | | | | | +--- SHD_N DC-DC converter on
-         //  | | | | +----- SHL Shift left
-         //  | | | +------- UD scan down
+         //  | | | | +----- SHL Shift right
+         //  | | | +------- UD scan up
          //  | | +--------- KW/R Pixel with Black/White/Red, KWR mode
          //  | +----------- LUT from register
          //  +------------- RES 128x296
