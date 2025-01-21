@@ -22,30 +22,26 @@ def patch_sn(file_path, sn):
             bin = bytearray(ih.tobinarray())
         else:
             file_size = os.path.getsize(file_path)
-            if file_size < 32768 or file_size > 32768 + 256:
+            if file_size > 32768 + 256:
+                print(f'Invalid file size {file_size}')
                 raise SnException()
 
             with open(file_path, "rb") as file:
                 bin = bytearray(file.read())
-                if file_size == 32768:
+                tag_type = bin[9:15].decode("utf-8")
+                if tag_type == 'chroma':
+                    # ota file
+                    if bin[8] == 1:
+                        file_type = "OTA"
+                        ota_offset = 25
+                        ota_file = True
+                    else:
+                        print(f'Header version {bin[8]} is not supported')
+                        raise SnException()
+                else:
                     file_type = "full binary"
                     binary_file = True
-                    pass
-                else:
-                    tag_type = bin[9:15].decode("utf-8")
-                    if tag_type == 'chroma':
-                        # ota file
-                        if bin[8] == 1:
-                            file_type = "OTA"
-                            ota_offset = 25
-                            ota_file = True
-                        else:
-                            print(f'Header version {bin[8]} is not supported')
-                            raise SnException()
 
-        SnOffset = (bin[32767 + ota_offset] << 8) + bin[32766 + ota_offset]
-        SnOffset += ota_offset
-        MagicOffset = SnOffset - 6
         NvMagic = bytearray([0x56, 0x12, 0x09, 0x85, 0x01, 0x08])
         SnOffset = bin.find(NvMagic)
 
@@ -86,10 +82,12 @@ def patch_sn(file_path, sn):
 
     except FileNotFoundError:
         print("Error: File not found.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+
     except SnException:
         pass
+
+    except Exception as e:
+        print(e)
 
 def sn_help():
     print('Invalid SN.')
