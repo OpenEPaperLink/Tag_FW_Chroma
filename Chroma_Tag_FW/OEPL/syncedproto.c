@@ -168,6 +168,9 @@ uint8_t detectAP(const uint8_t channel) __reentrant
       outBuffer[0] = sizeof(struct MacFrameBcast) + 1 + 2;
       UpdateBcastFrame();
       outBuffer[sizeof(struct MacFrameBcast) + 1] = PKT_PING;
+#ifdef PING_TEST
+      DumpHex(outBuffer,outBuffer[0]);
+#endif
       radioTx(outBuffer);
       t = timerGet() + (TIMER_TICKS_PER_MS * PING_REPLY_WINDOW);
       while(timerGet() < t) {
@@ -1225,6 +1228,37 @@ void DumpCurBlock()
          }
       }
       LOG("]\n");
+}
+#endif
+
+#ifdef PING_TEST
+void RfTest() {
+   gCurrentChannel = 203;  // 915.083 Mhz
+   while(true) {
+      detectAP(gCurrentChannel);
+      doSleep(1000UL);
+   }
+}
+#endif
+
+#ifdef TX_TEST
+extern void doSleep(uint32_t __xdata t);
+void RfTest() 
+{
+   uint16_t __xdata TestCount = 0;
+
+   radioRxEnable(false);
+   radioSetChannel(203);   // 915.083 Mhz
+   radioRxFlush();
+   radioRxEnable(true);
+   while(true) {
+      spr(&outBuffer[1],"This is a test %d\n",TestCount++);
+      outBuffer[0] = xStrLen(&outBuffer[1]);
+
+      LOGA("Sending: %s",&outBuffer[1]);
+      radioTx(outBuffer);
+      doSleep(1000UL);
+   }
 }
 #endif
 

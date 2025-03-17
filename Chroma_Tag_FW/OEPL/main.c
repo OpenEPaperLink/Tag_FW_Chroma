@@ -384,6 +384,10 @@ void main()
 // get the highest slot number, number of slots
    initializeProto();
 
+#ifdef RF_TEST
+   RfTest();
+// Never returns
+#else
    if(tagSettings.enableFastBoot) {
    // Fastboot
       MAIN_LOG("Doing fast boot\n");
@@ -446,7 +450,8 @@ void main()
          TagChanSearch();
       }
    }
-#endif
+#endif   // RF_TEST
+#endif   // DEBUGGUI
 }
 
 
