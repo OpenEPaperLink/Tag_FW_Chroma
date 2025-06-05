@@ -112,7 +112,7 @@ void drawImageAtAddress(uint32_t addr) __reentrant
       return;
    }
 
-   screenTxStart(false);
+   screenTxStart();
    gPartY = 0;
    gDrawY = 0;
    for(Part = 0; Part < TOTAL_PART; Part++) {
@@ -179,7 +179,7 @@ void DrawScreen(DrawingFunction DrawIt)
    uint8_t Value = 0;
    uint8_t Pixel;
 
-   screenTxStart(false);
+   screenTxStart();
    gPartY = 0;
    gDrawY = 0;
    for(Part = 0; Part < TOTAL_PART; Part++) {

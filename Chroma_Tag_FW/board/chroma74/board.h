@@ -8,6 +8,11 @@
 #define BOARD_NAME "Chroma74"
 #define HW_TYPE    0x80
 
+#ifndef HW_VARIANT
+// BWY Chroma74 is the base variant
+#define BWY
+#endif
+
 extern const char * __code gBoardName;
 extern const uint8_t __code gDefaultEEPROM[];
 

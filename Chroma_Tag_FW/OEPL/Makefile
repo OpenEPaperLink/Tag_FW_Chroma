@@ -1,11 +1,11 @@
-BUILD ?= chroma42_8176
+BUILD ?= chroma74r
 FLAGS += -DBUILD=$(BUILD)
 
 ifeq ($(BUILD),chroma74y)
-  FLAGS += -DBWY
   BOARD=chroma74
 else ifeq ($(BUILD),chroma74r)
   BOARD=chroma74
+  FLAGS += -DHW_VARIANT=1
 else ifeq ($(BUILD),chroma42_8176)
   BOARD=chroma42
   SCREEN_SRC = screen_8176.c
@@ -16,16 +16,6 @@ else ifeq ($(BUILD),chroma29_8151)
   FLAGS += -DHW_VARIANT=1
 else
   BOARD=$(BUILD)
-endif
-
-ifeq ($(BOARD),chroma74)
-# BOARD is Chroma74
-  LUT ?= atc1441
-  ifeq ($(LUT),atc1441)
-    FLAGS += -DATC1441_LUT
-  else ifeq ($(LUT),dmitry)
-    FLAGS += -DDMITRY_LUT
-  endif
 endif
 
 ifeq ($(SCREEN_SRC),)

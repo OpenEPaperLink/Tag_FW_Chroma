@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-// #define RELEASE_BUILD            // include gDefaultEEPROM support
-#define FW_VERSION 0x0013        // version number
+#define RELEASE_BUILD            // include gDefaultEEPROM support
+#define FW_VERSION 0x0014        // version number
 
 #define SFDP_DISABLED         // Disable SFDP to save 1538 bytes.
 

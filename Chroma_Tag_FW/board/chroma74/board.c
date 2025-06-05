@@ -5,6 +5,7 @@
 #ifdef RELEASE_BUILD
 // NB: The patch utility searches for 0x56,0x12,0x09,0x85,0x01,0x08
 // to find this structure so DO NOT change the order !
+#ifndef HW_VARIANT
 const uint8_t __code gDefaultEEPROM[] = {
    0x56, 0x12, 0x09, 0x85, // magic number
    0x01,8,'J','M',0,0,0,0, // Default to JM00000000 if we can't get the SN 
@@ -13,6 +14,18 @@ const uint8_t __code gDefaultEEPROM[] = {
    0x12,4,0x5a,0x0a, // ADC slope
 // 0xff        // end of settings (erased EEPROM)
 };
+#elif HW_VARIANT == 1
+const uint8_t __code gDefaultEEPROM[] = {
+   0x56, 0x12, 0x09, 0x85, // magic number
+   0x01,8,'J','L',0,0,0,0, // Default to JL00000000 if we can't get the SN 
+   0x23,3,0x30,            // VCOM
+   0x09,4,0xf1,0x02, // ADC intercept
+   0x12,4,0x5a,0x0a, // ADC slope
+// 0xff        // end of settings (erased EEPROM)
+};
+#else
+   #error "HW_VARIANT Invalid"
+#endif
 #endif
 
 #include "../boardChroma.c"

@@ -80,7 +80,7 @@ void loadSettings()
    if(Settings->Magic != SETTINGS_MAGIC || 
       Settings->SubGhzSettingsVer != SUBGHZ_SETTINGS_VERSION) 
    {  // settings not set. load the defaults
-      LOGA("Loaded defaults settingsVer 0x%x Magic 0x%lx\n",
+      LOGA("Loaded defaults Ver 0x%x Magic 0x%lx\n",
            Settings->SubGhzSettingsVer,Settings->Magic);
       loadDefaultSettings();
       return;
