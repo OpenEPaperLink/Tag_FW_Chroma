@@ -9,7 +9,10 @@
 #include "settings.h"
 #include "logging.h"
 
+#define pHARD_CODED_SN  ((const void __xdata*) &gDefaultEEPROM[8])
+
 void LoadGlobalsFromEEPROM();
+void ResetFactoryNVRAM(void);
 
 char __xdata gMacString[17];
 __bit gEEpromFailure;
@@ -88,26 +91,27 @@ void LoadGlobalsFromEEPROM()
 // Set mSelfMac from the device SN stored in the factory "NVRAM".
 // Note: apparently some boards have a 6 character SN and some have a 7.
 // Only the first 6 charcters are used.
-   
    gEEpromFailure = true;  // Assume the worse !
       
    if(prvReadSetting(0x2a,gTempBuf320,7) < 0 && 
       prvReadSetting(1,gTempBuf320,6) < 0) 
-   {  // Couldn't get SN from factory EEPROM, set default
+   {  // Couldn't get SN from factory EEPROM, set to the hardcoded value 
       NV_DATA_LOG("failed to get SN\n");
       return;
    }
 // Got the SN
 #ifdef RELEASE_BUILD
    xMemSet(&gTempBuf320[16],0x00,4);
-   if(xMemEqual(&gTempBuf320[2],&gTempBuf320[16],4)) {
-   // SN is the default SN
-      NV_DATA_LOG("SN is default\n");
-      if(!xMemEqual((const void __xdata*) &gDefaultEEPROM[8],&gTempBuf320[16],4)) {
-      // The default SN has been patched in flash, reset NVRAM to update SN
-         NV_DATA_LOG("gDefaultEEPROM updated\n");
-         return;
-      }
+
+// If the built in default SN has been patched make sure it matches the SN
+// in EEPROM.  This allows recovery from accidentially programming the same
+// SN into two displays
+   if(!xMemEqual(pHARD_CODED_SN,&gTempBuf320[16],4) && 
+      !xMemEqual(pHARD_CODED_SN,&gTempBuf320[2],4))
+   {  // The hardcoded SN is not the default (all zeros) and the SN in
+      // EEPROM does not match, set EEPROM to the (new) defaults
+      NV_DATA_LOG("Set SN to patched value\n");
+      return;
    }
 #endif
 
@@ -152,16 +156,19 @@ void LoadGlobalsFromEEPROM()
    
    if(prvReadSetting(0x12,&mAdcSlope,2) < 0) {
       NV_DATA_LOG("failed to get ADC slope\n");
+   // reset the EEPROM to the defaults
       return;
    }
    NV_DATA_LOG("ADC slope %d\n",mAdcSlope);
 
    if(prvReadSetting(0x09,&mAdcIntercept,2) < 0) {
       NV_DATA_LOG("failed to get ADC intercept\n");
+   // reset the EEPROM to the defaults
       return;
    }
    NV_DATA_LOG("ADC mAdcIntercept %d\n",mAdcIntercept);
 
+// All is good, don't reset the EEPROM
    gEEpromFailure = false;
 }
 
