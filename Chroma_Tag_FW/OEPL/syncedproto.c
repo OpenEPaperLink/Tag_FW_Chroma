@@ -91,10 +91,18 @@ uint8_t __xdata getPacketType()
       return ((uint8_t *)inBuffer)[sizeof(struct MacFrameBcast)];
    }
    if(pktIsUnicast()) {
-   // normal frame
+   // normal frame, check that it's for us
       COMMS_LOG(" 0x%x\n",
                 ((uint8_t *)inBuffer)[sizeof(struct MacFrameNormal)]);
-      return ((uint8_t *)inBuffer)[sizeof(struct MacFrameNormal)];
+      if(xMemEqual(((struct MacFrameNormal *)inBuffer)->dst,
+                   mSelfMac,sizeof(mSelfMac)))
+      {
+         return ((uint8_t *)inBuffer)[sizeof(struct MacFrameNormal)];
+      }
+      else {
+         COMMS_LOG("not for us\n");
+         return 0;
+      }
    }
    COMMS_LOG(" unknown\n");
    return 0;
