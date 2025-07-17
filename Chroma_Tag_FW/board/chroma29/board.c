@@ -32,8 +32,8 @@ void powerPortsDownForSleep(void)
 // P1.1 is P1_EPD_nCS0 so we leave it as an output
    P1DIR = P1_EPD_nCS0;
 
-   if(!(mSelfMac[3] & 0xf0)) {
-   // JA0xxxxxxx devices do not implement EPD power control
+   if(mSelfMac[3] == 0 && (mSelfMac[2] & 0xf0) == 0) {
+   // JA000xxxxx devices do not implement EPD power control
 
    // set EPD_nCS0 high (it should already be, but make sure)
       P1_1 = 1;
@@ -47,7 +47,8 @@ void powerPortsDownForSleep(void)
 
    }
    else {
-   // JA1xxxxxxx devices implement EPD power control
+   // JA001xxxxx -> JA004xxxxx (at least) and JA1xxxxxxx devices implement 
+   // EPD power control
    
    // Disable pullups on pins connected to the EPD
       P0INP = P0_EPD_PINS;
