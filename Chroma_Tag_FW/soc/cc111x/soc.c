@@ -8,6 +8,7 @@
 #include "powermgt.h"
 #include "settings.h"
 #include "logging.h"
+#include "timer.h"
 
 #define pHARD_CODED_SN  ((const void __xdata*) &gDefaultEEPROM[8])
 
@@ -67,6 +68,13 @@ void boardInitStage2(void)
 #endif
    LoadGlobalsFromEEPROM();
 #ifdef RELEASE_BUILD
+// A single failed read must not wipe the factory NVRAM: after a bouncy
+// battery insertion the SPI flash may not be ready yet, so retry first.
+   for(uint8_t Retry = 0; gEEpromFailure && Retry < 3; Retry++) {
+      timerDelay(TIMER_TICKS_PER_SECOND / 10);
+      eepromWakeFromPowerdown();
+      LoadGlobalsFromEEPROM();
+   }
    if(gEEpromFailure) {
    // Not good!  Try to set defaults so we can communicate
       NV_DATA_LOG("First call to LoadGlobalsFromEEPROM failed\n");
