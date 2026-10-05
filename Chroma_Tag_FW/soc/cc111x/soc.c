@@ -78,7 +78,8 @@ void boardInitStage2(void)
       LoadGlobalsFromEEPROM();
    }
 // Only write the NVRAM if the flash answers, otherwise the decision is based
-// on reads of a flash that isn't there; try again on the next boot instead.
+// on reads of a flash that isn't there.  main() then shows the "no EEPROM"
+// screen, and the NVRAM is read again when the battery is reinserted.
    if(gEEpromFailure && eepromResponds()) {
    // Not good!  Try to set defaults so we can communicate
       NV_DATA_LOG("First call to LoadGlobalsFromEEPROM failed\n");

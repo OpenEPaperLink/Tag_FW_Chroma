@@ -14,8 +14,9 @@
 #define DEFAULT_ADC_SLOPE      0x0a5a
 
 // An all zero SN means the factory NVRAM was lost and reset to the defaults.
-// Treat the tag as having EPD power control then: driving the EPD pins low is
-// safe on all hardware, while pulling them up on a JA1 tag back powers the
+// Treat the tag as having EPD power control then: driving the EPD control
+// pins low (BUSY stays an input, the EPD drives it) is safe on all hardware,
+// while pulling them up on a JA1 tag back powers the
 // switched off EPD (suspected cause of dead EPD rows on tags left like that).
 #define SN_IS_ZERO()    ((mSelfMac[3] | mSelfMac[2] | mSelfMac[1] | mSelfMac[0]) == 0)
 

@@ -59,6 +59,10 @@ void powerPortsDownForSleep(void)
    // drive EPD pins low prevent back powering the display
       P0 &= ~P0_EPD_PINS;
       P1 &= ~P1_EPD_PINS;
+      if(SN_IS_ZERO()) {
+      // might be a JA000 tag whose EPD stays powered and drives BUSY
+         P1DIR &= ~P1_EPD_BUSY;
+      }
    }
 
 // Disconnect all perpherials from pins
