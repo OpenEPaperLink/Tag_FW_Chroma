@@ -39,6 +39,18 @@ def image(records, magic=True):
     return bytes(d)
 
 
+def image2(sector1, sector0=None):
+    """NVRAM in sector 1, as the stock FW leaves it after moving it there;
+    sector 0 is blank unless given"""
+    d = bytearray(b'\xff' * FLASH_SIZE)
+    if sector0 is not None:
+        body = MAGIC + b''.join(sector0)
+        d[:len(body)] = body
+    body = MAGIC + b''.join(sector1)
+    d[0x1000:0x1000 + len(body)] = body
+    return bytes(d)
+
+
 def r_sn(sn=SN):
     return rec(0x01, b'JD' + sn)
 
@@ -58,6 +70,7 @@ def std(*extra, sn=SN, vcom=True):
 
 MAC_KEPT = '4467090300006303'
 MAC_ZERO = '4467090300000000'
+OTHER_SN = b'\x10\x00\x89\x56'
 
 
 def kept(r, img):
@@ -69,7 +82,7 @@ CASES = [
     ('1 all records ok', 'vcom', image(std()), 0, '-', kept, False,
      'nothing written, values from flash'),
     ('1b later record wins', 'vcom',
-     image([r_sn(b'\x11\x11\x11\x11')[:0] + bytes([0x00, 8]) + b'JD\x11\x11\x11\x11'] + std()),
+     image([bytes([0x00, 8]) + b'JD\x11\x11\x11\x11'] + std()),
      0, '-', kept, False, 'an invalidated SN before the live one is skipped'),
     ('2 flash not ready 50ms', 'vcom', image(std()), 50, '-', kept, False,
      'a retry succeeds, nothing written'),
@@ -92,13 +105,24 @@ CASES = [
      lambda r, i: r['mac'] == MAC_KEPT, False, 'patch_sn recovery writes the SN'),
     ('8 patched SN, flash SN matches', 'vcom', image(std()), 0, '00006303', kept, False,
      'nothing written'),
-    ('9 patched SN, other valid SN', 'vcom', image(std(sn=b'\x10\x00\x89\x56')), 0,
+    ('9 patched SN, other valid SN', 'vcom', image(std(sn=OTHER_SN)), 0,
      '00006303', lambda r, i: r['mac'] == MAC_KEPT, False,
      'current design: the patched SN replaces it (maintainers to decide)'),
     ('10 zero-len record before SN', 'vcom', image([R_ZEROLEN, r_sn(), R_VCOM, R_INT, R_SLOPE]),
      0, '-', lambda r, i: r['outcome'] == 'ok', False, 'must not hang'),
     ('11 zero-len record after needed', 'vcom', image(std(R_ZEROLEN, R_PANEL)), 0, '-',
      kept, False, 'must not hang, nothing written'),
+    ('12 patched SN, other SN in sector 1', 'vcom', image2(std(sn=OTHER_SN)), 0, '00006303',
+     lambda r, i: r['mac'] == MAC_KEPT and i[0x1000:0x1004] != MAGIC, False,
+     'patched SN takes effect, sector 1 no longer overrides it'),
+    ('13 patched SN, zero SN in sector 1', 'vcom', image2(std(sn=bytes(4))), 0, '00006303',
+     lambda r, i: r['mac'] == MAC_KEPT and i[0x1000:0x1004] != MAGIC, False,
+     'patch_sn recovery works when the NVRAM is in sector 1'),
+    ('14 NVRAM in sector 1', 'vcom', image2(std()), 0, '-', kept, False,
+     'read from sector 1, nothing written'),
+    ('15 defaults in sector 0, SN in sector 1', 'vcom',
+     image2(std(), sector0=[r_sn(bytes(4)), R_VCOM, R_INT, R_SLOPE]), 0, '-', kept, False,
+     'later sector wins, real SN kept, nothing written'),
 ]
 
 

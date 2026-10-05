@@ -25,6 +25,8 @@
 #define RELEASE_BUILD
 #define SFDP_DISABLED
 #define EEPROM_ERZ_SECTOR_SZ 4096
+#define EEPROM_FACTORY_NVRAM_ADR (0x00000UL)                   // as in board.h
+#define EEPROM_FACTORY_NVRAM_LEN (EEPROM_ERZ_SECTOR_SZ * 2)
 #define TIMER_TICKS_PER_SECOND 1000UL   // simulated: 1 tick = 1 ms
 #define INIT_EEPROM 0x02
 
