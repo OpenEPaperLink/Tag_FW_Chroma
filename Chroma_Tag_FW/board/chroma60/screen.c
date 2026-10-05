@@ -1,0 +1,499 @@
+#include <stddef.h>
+#include "asmUtil.h"
+#include "screen.h"
+#include "printf.h"
+#include "cpu.h"
+#include "timer.h"
+#include "sleep.h"
+#include "board.h"
+#include "powermgt.h"
+#include "adc.h"
+#include "settings.h"
+#include "logging.h"
+
+// uc8159 like commands
+#define CMD_PANEL_SETTING 0x00
+#define CMD_POWER_SETTING 0x01
+#define CMD_POWER_OFF 0x02
+#define CMD_POWER_OFF_SEQUENCE 0x03
+#define CMD_POWER_ON 0x04
+#define CMD_POWER_ON_MEASURE 0x05
+#define CMD_BOOSTER_SOFT_START 0x06
+#define CMD_DEEP_SLEEP 0x07
+#define CMD_DISPLAY_START_TRANSMISSION_DTM1 0x10
+#define CMD_DATA_STOP 0x11
+#define CMD_DISPLAY_REFRESH 0x12
+#define CMD_IPC 0x13
+#define CMD_PLL_CONTROL 0x30
+#define CMD_TEMPERATURE_CALIB 0x40
+#define CMD_TEMPERATURE_SELECT 0x41
+#define CMD_TEMPERATURE_WRITE 0x42
+#define CMD_TEMPERATURE_READ 0x43
+#define CMD_VCOM_INTERVAL 0x50
+#define CMD_LOWER_POWER_DETECT 0x51
+#define CMD_TCON_SETTING 0x60
+#define CMD_RESOLUTION_SETTING 0x61
+#define CMD_SPI_FLASH_CONTROL 0x65
+#define CMD_REVISION 0x70
+#define CMD_STATUS 0x71
+#define CMD_AUTO_MEASUREMENT_VCOM 0x80
+#define CMD_READ_VCOM 0x81
+#define CMD_VCOM_DC_SETTING 0x82
+#define CMD_PARTIAL_WINDOW 0x90
+#define CMD_PARTIAL_IN 0x91
+#define CMD_PARTIAL_OUT 0x92
+#define CMD_PROGRAM_MODE 0xA0
+#define CMD_ACTIVE_PROGRAM 0xA1
+#define CMD_READ_OTP 0xA2
+#define CMD_CASCADE_SET 0xE0
+#define CMD_POWER_SAVING 0xE3
+#define CMD_FORCE_TEMPERATURE 0xE5
+
+uint8_t __xdata mScreenVcom;
+
+/*
+   //eInk pinout:
+   // pin  1 = MFCSB    = ? optional
+   // pin  8 = BS1      = P0.0
+   // pin  9 = BUSY     = P1.0
+   // pin 10 = nRESET      = P1.2
+   // pin 11 = D/nC     = P0.7
+   // pin 12 = nCS      = P1.1
+   // pin 13 = D0(SCK)  = P1.3
+   // pin 14 = D1(SDIN) = P1.5 (also can be data out)
+   // pin 19 = FMSDO    = ?   optional
+   //extra pins
+   // nEnable           = P0.6
+   
+   
+   //controller is 99.9% likely to be UC8159 version c_B
+   
+   //LUT format info from: https://www.buydisplay.com/download/ic/UC8159C.pdf
+
+
+      VCOM LUT is: 20x VcomLutInfo = 20 * 11 = 220 bytes
+      
+         VcomLutInfo {
+            u8 numRepeats;    //how many times to perform this LUT step
+            u2 level[8];      //MSB to LSB. 00 = VCM_DC, 01 = 15V + VCM_DC, 10 = -15V + VCM_DC, 11 = float
+            u8 numFrames[8];  //for each level
+         }
+
+
+      COLOR LUTs ARE: 20x ColorLutInfo =  20 * 13 =  260 bytes
+      
+         ColorLutInfo {
+            u8 numRepeats;    //how many times to perform this LUT step
+            u4 level[8];      //MSB to LSB. top bit ignored. 000 = VCM_DC, 001 = 15V (VSH), 010 = -15V (VSL), 011 = VSH_LV, 100 = VSL_LV, 101 = VSH_LVX, 110 = VSL_LVX, 111 = float
+            u8 numFrames[8];  //for each level
+         }
+      
+      
+      XON LUT is: 20x XonLutInfo = 20 * 10 = 200 bytes
+      
+         XonLutInfo {
+            u8 numRepeats;    //how many times to perform this LUT step
+            u1 level[8];      //MSB to LSB. 0 = all gates ON, 1 = normal gate scan
+            u8 numFrames[8];  //for each level
+         }
+*/
+__xdata __at (0xfda2) uint8_t gTempBuf320[320];  //350 bytes here, we use 320 of them
+
+__bit gScreenPowered = false;
+
+#define LUT_CMD_000  0x21
+#define LUT_CMD_001  0x23
+#define LUT_CMD_010  0x24
+#define LUT_CMD_011  0x22
+#define LUT_CMD_100  0x25
+#define LUT_CMD_101  0x26
+#define LUT_CMD_110  0x27
+#define LUT_CMD_111  0x28
+
+// LUTs from the factory waveform script in SPI flash (0x2000 - 0x55c7,
+// "P17D01.06 V3 UC8159 60E4").  The script holds 13 temperature blocks,
+// these are from the 20C - 24C block.  Chroma60 is BWR only.
+// TODO(chroma60): select the block for the current temperature
+static const uint8_t __code gPwrUpEpd[] = {
+   4,CMD_BOOSTER_SOFT_START,
+   0x0e,0xcd,0x26,
+
+   5,CMD_POWER_SETTING,
+   0x07,0x01,0x07,0x3c,   // VDHR 0x07 per the 20C factory block
+
+   1,CMD_POWER_ON,
+
+   0
+};
+
+static const uint8_t __code gSetupEpd[] = {
+   2,CMD_SPI_FLASH_CONTROL,
+   0, // disabled
+
+   3,CMD_PANEL_SETTING,
+   0xef,0x80,
+
+   2,CMD_PLL_CONTROL,
+   0x3a,
+
+   5,CMD_RESOLUTION_SETTING,
+   SCREEN_WIDTH >> 8,SCREEN_WIDTH & 0xff,SCREEN_HEIGHT >> 8,
+   SCREEN_HEIGHT & 0xff,
+
+   0
+};
+
+static const uint8_t __code  lut20[] = {
+// LUT_VCOM (0x20), 82 of 220 bytes, the rest are zero
+   0x01,
+   0x00,0x00,
+   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x00,0x00,
+   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0c,
+   0x00,0x00,
+   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0f,
+   0x00,0x00,
+   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x08,
+   0x00,0x00,
+   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x00,0x00,
+   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x02,
+   0x00,0x00,
+   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x03,
+   0x00,0x00,
+   0x04,0x06
+};
+
+static const uint8_t __code  lut22[] = {
+// LUT_W (0x22), 98 of 260 bytes, the rest are zero
+   0x01,
+   0x00,0x01,0x00,0x00,
+   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x21,0x00,0x00,0x00,
+   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0c,
+   0x21,0x00,0x00,0x00,
+   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0f,
+   0x20,0x00,0x00,0x00,
+   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x08,
+   0x00,0x00,0x00,0x00,
+   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x00,0x00,0x00,0x00,
+   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x02,
+   0x00,0x00,0x00,0x00,
+   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x03,
+   0x20,0x00,0x00,0x00,
+   0x04,0x06
+};
+
+static const uint8_t __code  lut21[] = {
+// LUT_B (0x21), 98 of 260 bytes, the rest are zero
+   0x01,
+   0x00,0x22,0x00,0x00,
+   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x21,0x00,0x00,0x00,
+   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0c,
+   0x21,0x00,0x00,0x00,
+   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0f,
+   0x01,0x00,0x00,0x00,
+   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x08,
+   0x00,0x00,0x00,0x00,
+   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x00,0x00,0x00,0x00,
+   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x02,
+   0x00,0x00,0x00,0x00,
+   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x03,
+   0x01,0x00,0x00,0x00,
+   0x04,0x06
+};
+
+static const uint8_t __code  lut25[] = {
+// LUT_R0 (0x25), 98 of 260 bytes, the rest are zero
+   0x01,
+   0x22,0x22,0x00,0x00,
+   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x21,0x00,0x00,0x00,
+   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0c,
+   0x21,0x00,0x00,0x00,
+   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x0f,
+   0x01,0x00,0x00,0x00,
+   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x08,
+   0x23,0x00,0x00,0x00,
+   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x04,
+   0x23,0x00,0x00,0x00,
+   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
+
+   0x02,
+   0x33,0x00,0x00,0x00,
+   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
+
+   0x03,
+   0x00,0x00,0x00,0x00,
+   0x04,0x06
+};
+
+struct Atc1441Luts {
+   uint8_t Cmd;
+   const uint8_t __code *Lut;
+   uint16_t LutLen;
+} gLuts[] = {
+   {0x20,lut20,sizeof(lut20)},         // Vcom
+   {0x29,NULL,0},                      // Xon, all zero per factory script
+   {LUT_CMD_000,lut21,sizeof(lut21)},  // black
+   {LUT_CMD_001,NULL,0},               // not used
+   {LUT_CMD_010,NULL,0},               // not used
+   {LUT_CMD_011,NULL,0},               // not used
+   {LUT_CMD_100,NULL,0},               // not used
+   {LUT_CMD_101,NULL,0},               // not used
+   {LUT_CMD_110,lut22,sizeof(lut22)},  // white
+   {LUT_CMD_111,lut25,sizeof(lut25)},  // red/yellow
+   {0}                                 // End of table
+};
+
+static const uint8_t __code gPwrOffEpd[] = {
+   1,CMD_POWER_OFF,
+
+   2,CMD_DEEP_SLEEP,
+   0xa5,
+
+   0
+};
+
+
+#pragma callee_saves screenPrvSendCommand
+static inline void screenPrvSendCommand(uint8_t cmdByte)
+{
+   screenPrvWaitByteSent();
+   P0 &= (uint8_t) ~P0_EPD_D_nCMD;
+   __asm__("nop");
+   screenByteTx(cmdByte);
+   __asm__("nop");
+   screenPrvWaitByteSent();
+   P0 |= P0_EPD_D_nCMD;
+}
+
+
+void P1INT_ISR(void) __interrupt (15)
+{
+   SLEEP &= (uint8_t)~(3 << 0);  //wake up
+}
+
+// <CommandBytes> <Command> [<Data>] ...]
+void SendEpdTbl(uint8_t const __code *pData)
+{
+   uint8_t CmdBytes;
+
+   while((CmdBytes = *pData++) != 0) {
+      einkSelect();
+      screenPrvSendCommand(*pData++);
+      CmdBytes--;
+      while(CmdBytes > 0) {
+         screenPrvWaitByteSent();
+         U0DBUF = *pData++;
+         CmdBytes--;
+      }
+      einkDeselect();
+   }
+}
+
+static void screenInitIfNeeded()
+{
+   if(gScreenPowered) {
+      return;
+   }
+   gScreenPowered = true;
+   
+// Don't select the EPD yet
+   P1 |= P1_EPD_nCS0;
+
+// turn on the eInk power (keep in reset for now)
+   P0 &= (uint8_t) ~P0_EPD_nENABLE;
+
+// Connect the P1 EPD pins to USART0
+   P1SEL |= P1_EPD_SCK | P1_EPD_DI;
+   
+   U0BAUD = 0;          // F/8 is max for spi - 3.25 MHz
+   U0GCR = 0b00110001;  // BAUD_E = 0x11, msb first
+   U0CSR = 0b00000000;  // SPI master mode, RX off
+   
+   timerDelay(TIMER_TICKS_PER_SECOND * 10 / 1000); //wait 10ms
+   
+// release reset
+   P1 |= P1_EPD_nRESET;
+   timerDelay(TIMER_TICKS_PER_SECOND * 10 / 1000); //wait 10ms
+   
+// wait for not busy
+   while(!EPD_BUSY());
+   
+// we can now talk to it
+   SendEpdTbl(gPwrUpEpd);
+   
+// wait for not busy
+   while(!EPD_BUSY());
+   
+   SendEpdTbl(gSetupEpd);
+
+   einkSelect();
+   screenPrvSendCommand(CMD_VCOM_DC_SETTING);
+   screenByteTx(mScreenVcom);
+   einkDeselect();
+   
+   einkSelect();
+   screenPrvSendCommand(CMD_VCOM_INTERVAL);
+   screenByteTx(0x77);
+   einkDeselect();
+   
+   int8_t i;
+   int16_t j;
+   int16_t LutLen;
+   for(i = 0; gLuts[i].Cmd != 0; i++) {
+      if(gLuts[i].Cmd == 0x20) {
+      // VCOM LUT
+         LutLen = 220;
+      }
+      else if(gLuts[i].Cmd == 0x29) {
+      // Xon LUT
+         LutLen = 200;
+      }
+      else {
+      // Color LUT
+         LutLen = 260;
+      }
+      einkSelect();
+      screenPrvSendCommand(gLuts[i].Cmd);
+      for(j = 0; j < gLuts[i].LutLen; j++) {
+         screenByteTx(gLuts[i].Lut[j]);
+      }
+
+      if(j < LutLen) {
+      // zero remaining entries
+         while(j++ < LutLen) {
+            screenByteTx(0);
+         }
+      }
+      einkDeselect();
+   }
+   LOG_CONFIG("screenInitIfNeeded");
+}
+
+void screenShutdown(void)
+{
+   if (!gScreenPowered) {
+      return;
+   }
+   
+   SendEpdTbl(gPwrOffEpd);
+
+// Reconfigure the EPD SPI pins as GPIO
+// Disconnect the P1 EPD SPI pins from USART0 and connect them to GPIO
+   P1SEL &= ~(P1_EPD_SCK | P1_EPD_DI);
+
+// Drive all of the control pins LOW to avoid back powering the EPD via the 
+// control pins
+
+   P0 &= ~(P0_EPD_BS1 | P0_EPD_nCS1 | P0_EPD_D_nCMD);
+   P1 &= ~(P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI);
+// Turn off power to the EPD
+   SET_EPD_nENABLE(1);
+   
+   gScreenPowered = false;
+
+   LOG_CONFIG("screenShutdown");
+}
+
+void screenTxStart()
+{
+   screenInitIfNeeded();
+   
+   einkSelect();
+   screenPrvSendCommand(CMD_DISPLAY_START_TRANSMISSION_DTM1);
+}
+
+#pragma callee_saves screenByteTx
+void screenByteTx(uint8_t byte)
+{
+   screenPrvWaitByteSent();
+   U0DBUF = byte;
+}
+
+void drawWithSleep() 
+{
+#ifdef DISABLE_DISPLAY
+   LOGA("NOT updating display\n");
+#else
+   uint16_t Lowest = 0xffff;
+
+   LOGA("Updating display\n");
+   einkDeselect();
+   einkSelect();
+   screenPrvSendCommand(CMD_DISPLAY_REFRESH);
+   einkDeselect();
+   
+   while(!EPD_BUSY()) {
+   // Wake up every 50 milliseconds to check BattV and EPD_BUSY
+      sleepForMsec(50UL);
+      clockingAndIntsInit();  // restart clocks
+      ADCRead(ADC_CHAN_VDD_3);
+      if(Lowest > gRawA2DValue) {
+         Lowest = gRawA2DValue;
+      }
+   }
+   gRefreshBattV = ADCScaleVDD(Lowest);
+   powerUp(INIT_BASE);
+   screenShutdown();
+   UpdateVBatt();
+   LOGA("Update complete\n");
+#endif
+}
+

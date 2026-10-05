@@ -11,6 +11,7 @@ builds={'chroma74y':{'hw_id' : '80','version' : 'version','md5': 'md5'}
     ,'chroma29_8151':{'hw_id' : '82','version': 'version_1','md5': 'md5_1'}
     ,'chroma42':{'hw_id' : '83','version': 'version','md5': 'md5'}
     ,'chroma42_8176':{'hw_id' : '83','version': 'version_1','md5': 'md5_1'}
+    ,'chroma60':{'hw_id' : '84','version': 'version','md5': 'md5'}
 }
 
 oepl_repo='../../../OpenEPaperLink/'
@@ -30,8 +31,9 @@ for key in builds.keys():
     with open(info[0]["OTA_BIN"], "rb") as f:
         h.update(f.read())
     md5sum = h.hexdigest()
-    js[0][values['hw_id']][values['md5']] = md5sum
-    js[0][values['hw_id']][values['version']] = info[0]["FW_VER"]
+    hw = js[0].setdefault(values['hw_id'], {})   # new boards have no entry yet
+    hw[values['md5']] = md5sum
+    hw[values['version']] = info[0]["FW_VER"]
     json.dump(js,open(oepl_repo + tag_ota_versions,'w'),indent=2)
 
 cmd_line = [ f'{shell}', '-c',f'cd {oepl_repo};git add {tag_ota_versions}']
