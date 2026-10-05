@@ -8,6 +8,12 @@
 #define BOARD_NAME "Chroma29"
 #define HW_TYPE    0x82
 
+// An all zero SN means the factory NVRAM was lost and reset to the defaults.
+// Treat the tag as having EPD power control then: driving the EPD pins low is
+// safe on all hardware, while pulling them up on a JA1 tag back powers the
+// switched off EPD (suspected cause of dead EPD rows on tags left like that).
+#define SN_IS_ZERO()    ((mSelfMac[3] | mSelfMac[2] | mSelfMac[1] | mSelfMac[0]) == 0)
+
 #ifndef DISABLE_BARCODES
 #define DISABLE_BARCODES   // not supported on Chroma29 (yet ?)
 #endif

@@ -32,7 +32,7 @@ void powerPortsDownForSleep(void)
 // P1.1 is P1_EPD_nCS0 so we leave it as an output
    P1DIR = P1_EPD_nCS0;
 
-   if(mSelfMac[3] == 0 && (mSelfMac[2] & 0xf0) == 0) {
+   if(mSelfMac[3] == 0 && (mSelfMac[2] & 0xf0) == 0 && !SN_IS_ZERO()) {
    // JA000xxxxx devices do not implement EPD power control
 
    // set EPD_nCS0 high (it should already be, but make sure)
