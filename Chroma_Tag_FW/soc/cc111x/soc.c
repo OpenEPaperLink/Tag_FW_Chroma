@@ -16,6 +16,8 @@ void LoadGlobalsFromEEPROM();
 void ResetFactoryNVRAM(void);
 
 char __xdata gMacString[17];
+// Set when the factory NVRAM must be (re)written: no valid SN in it, or a
+// patched SN in gDefaultEEPROM differs from it.
 __bit gEEpromFailure;
 
 #pragma callee_saves prvReadSetting
@@ -75,7 +77,9 @@ void boardInitStage2(void)
       eepromWakeFromPowerdown();
       LoadGlobalsFromEEPROM();
    }
-   if(gEEpromFailure) {
+// Only write the NVRAM if the flash answers, otherwise the decision is based
+// on reads of a flash that isn't there; try again on the next boot instead.
+   if(gEEpromFailure && eepromResponds()) {
    // Not good!  Try to set defaults so we can communicate
       NV_DATA_LOG("First call to LoadGlobalsFromEEPROM failed\n");
       ResetFactoryNVRAM();
@@ -158,22 +162,21 @@ void LoadGlobalsFromEEPROM()
 #ifdef SCREEN_EXPECTS_VCOM
    if(prvReadSetting(0x23,&mScreenVcom,1) < 0) {
       NV_DATA_LOG("failed to get VCOM\n");
-      return;
+   // keep the SN, a missing calibration value is no reason to reset the NVRAM
+      mScreenVcom = DEFAULT_VCOM;
    }
    NV_DATA_LOG("VCOM: 0x%02x\n", mScreenVcom);
 #endif
    
    if(prvReadSetting(0x12,&mAdcSlope,2) < 0) {
       NV_DATA_LOG("failed to get ADC slope\n");
-   // reset the EEPROM to the defaults
-      return;
+      mAdcSlope = DEFAULT_ADC_SLOPE;
    }
    NV_DATA_LOG("ADC slope %d\n",mAdcSlope);
 
    if(prvReadSetting(0x09,&mAdcIntercept,2) < 0) {
       NV_DATA_LOG("failed to get ADC intercept\n");
-   // reset the EEPROM to the defaults
-      return;
+      mAdcIntercept = DEFAULT_ADC_INTERCEPT;
    }
    NV_DATA_LOG("ADC mAdcIntercept %d\n",mAdcIntercept);
 

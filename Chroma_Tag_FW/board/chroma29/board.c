@@ -8,8 +8,8 @@
 const uint8_t __code gDefaultEEPROM[] = {
    0x56, 0x12, 0x09, 0x85, // magic number
    0x01,8,'J','A',0,0,0,0, // Default to JA00000000 if we can't get the SN
-   0x09,4,0xec,0x02, // ADC intercept
-   0x12,4,0x5a,0x0a, // ADC slope
+   0x09,4,DEFAULT_ADC_INTERCEPT & 0xff,DEFAULT_ADC_INTERCEPT >> 8, // ADC intercept
+   0x12,4,DEFAULT_ADC_SLOPE & 0xff,DEFAULT_ADC_SLOPE >> 8, // ADC slope
 // 0xff        // end of settings (erased EEPROM)
 };
 #endif

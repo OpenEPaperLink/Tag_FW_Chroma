@@ -8,6 +8,11 @@
 #define BOARD_NAME "Chroma29"
 #define HW_TYPE    0x82
 
+// Defaults for the factory NVRAM, used in gDefaultEEPROM and when a
+// calibration value is missing from the NVRAM
+#define DEFAULT_ADC_INTERCEPT  0x02ec
+#define DEFAULT_ADC_SLOPE      0x0a5a
+
 // An all zero SN means the factory NVRAM was lost and reset to the defaults.
 // Treat the tag as having EPD power control then: driving the EPD pins low is
 // safe on all hardware, while pulling them up on a JA1 tag back powers the
