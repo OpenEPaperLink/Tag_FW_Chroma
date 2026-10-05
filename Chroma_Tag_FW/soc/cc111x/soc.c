@@ -35,7 +35,8 @@ static int8_t prvReadSetting(uint8_t type, uint8_t __xdata *dst, uint8_t maxLen)
          while (ofst < EEPROM_ERZ_SECTOR_SZ) {
          // first byte is type, (0xff for done), second is length
             eepromRead(addr + ofst, tmpBuf, 2);
-            if (tmpBuf[0] == 0xff) {
+         // a length < 2 can't be walked (seen on Chroma60), stop here
+            if (tmpBuf[0] == 0xff || tmpBuf[1] < 2) {
                break;
             }
             
