@@ -303,7 +303,7 @@ void screenInitGPIO(bool bActivate)
 {
    if(bActivate) {
    // Nothing special to do
-      if(!(mSelfMac[3] & 0xf0)) {
+      if(!(mSelfMac[3] & 0xf0) && !SN_IS_ZERO()) {
       // JA0xxxxxxx devices do not implement EPD power control.
       // 
       // Configure all control pins as outputs and disable pull-up resistors 
@@ -318,7 +318,7 @@ void screenInitGPIO(bool bActivate)
    // Disconnect the P1 EPD SPI pins from USART0 and connect them to GPIO
       P1SEL &= ~(P1_EPD_SCK | P1_EPD_DI);
 
-      if(mSelfMac[3] & 0xf0) {
+      if((mSelfMac[3] & 0xf0) || SN_IS_ZERO()) {
       // JA1xxxxxxx devices implement EPD power control.
       // Drive all of the control pins LOW to avoid back powering the EPD via the 
       // control pins

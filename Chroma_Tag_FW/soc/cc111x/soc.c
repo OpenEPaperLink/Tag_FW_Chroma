@@ -8,6 +8,7 @@
 #include "powermgt.h"
 #include "settings.h"
 #include "logging.h"
+#include "timer.h"
 
 #define pHARD_CODED_SN  ((const void __xdata*) &gDefaultEEPROM[8])
 
@@ -15,6 +16,8 @@ void LoadGlobalsFromEEPROM();
 void ResetFactoryNVRAM(void);
 
 char __xdata gMacString[17];
+// Set when the factory NVRAM must be (re)written: no valid SN in it, or a
+// patched SN in gDefaultEEPROM differs from it.
 __bit gEEpromFailure;
 
 #pragma callee_saves prvReadSetting
@@ -35,7 +38,8 @@ static int8_t prvReadSetting(uint8_t type, uint8_t __xdata *dst, uint8_t maxLen)
          while (ofst < EEPROM_ERZ_SECTOR_SZ) {
          // first byte is type, (0xff for done), second is length
             eepromRead(addr + ofst, tmpBuf, 2);
-            if (tmpBuf[0] == 0xff) {
+         // a length < 2 can't be walked (seen on Chroma60), stop here
+            if (tmpBuf[0] == 0xff || tmpBuf[1] < 2) {
                break;
             }
             
@@ -66,7 +70,17 @@ void boardInitStage2(void)
 #endif
    LoadGlobalsFromEEPROM();
 #ifdef RELEASE_BUILD
-   if(gEEpromFailure) {
+// A single failed read must not wipe the factory NVRAM: after a bouncy
+// battery insertion the SPI flash may not be ready yet, so retry first.
+   for(uint8_t Retry = 0; gEEpromFailure && Retry < 3; Retry++) {
+      timerDelay(TIMER_TICKS_PER_SECOND / 10);
+      eepromWakeFromPowerdown();
+      LoadGlobalsFromEEPROM();
+   }
+// Only write the NVRAM if the flash answers, otherwise the decision is based
+// on reads of a flash that isn't there.  main() then shows the "no EEPROM"
+// screen, and the NVRAM is read again when the battery is reinserted.
+   if(gEEpromFailure && eepromResponds()) {
    // Not good!  Try to set defaults so we can communicate
       NV_DATA_LOG("First call to LoadGlobalsFromEEPROM failed\n");
       ResetFactoryNVRAM();
@@ -149,22 +163,21 @@ void LoadGlobalsFromEEPROM()
 #ifdef SCREEN_EXPECTS_VCOM
    if(prvReadSetting(0x23,&mScreenVcom,1) < 0) {
       NV_DATA_LOG("failed to get VCOM\n");
-      return;
+   // keep the SN, a missing calibration value is no reason to reset the NVRAM
+      mScreenVcom = DEFAULT_VCOM;
    }
    NV_DATA_LOG("VCOM: 0x%02x\n", mScreenVcom);
 #endif
    
    if(prvReadSetting(0x12,&mAdcSlope,2) < 0) {
       NV_DATA_LOG("failed to get ADC slope\n");
-   // reset the EEPROM to the defaults
-      return;
+      mAdcSlope = DEFAULT_ADC_SLOPE;
    }
    NV_DATA_LOG("ADC slope %d\n",mAdcSlope);
 
    if(prvReadSetting(0x09,&mAdcIntercept,2) < 0) {
       NV_DATA_LOG("failed to get ADC intercept\n");
-   // reset the EEPROM to the defaults
-      return;
+      mAdcIntercept = DEFAULT_ADC_INTERCEPT;
    }
    NV_DATA_LOG("ADC mAdcIntercept %d\n",mAdcIntercept);
 
