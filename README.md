@@ -22,6 +22,7 @@ Currently the following tags are supported and support for the Chroma21 is plann
 | Chroma42 | "JH1xxxxxxxB" | chroma42_8176 | chroma42_8176_full_\<version\>.bin |
 | Chroma74 | "JM1xxxxxxxB" | chroma74y | chroma74y_full_\<version\>.bin |
 | Chroma74 | "JL1xxxxxxxB" | chroma74r | chroma74r_full_\<version\>.bin |
+| Chroma60 | "JDxxxxxxxxx" | chroma60 | chroma60_full_\<version\>.bin |
 
 Where \<version\> is the 4 digit firmware version in hex for example "chroma29_8151_full_0012.bin"
 
