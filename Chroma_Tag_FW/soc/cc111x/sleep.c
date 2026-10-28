@@ -23,10 +23,13 @@ void WOR_ISR(void) __interrupt (5)
 }
 
 // assumes you left only one int enabled!
+#if !defined(RELEASE_BUILD)
 void sleepTillInt(void) 
 {
    PCON |= 0x01; // Enter PM2
 }
+#endif
+
 
 #define SET_PM0   (SLEEP_MODE_PM0 | SLEEP_OSC_PD)
 #define SET_PM2   (SLEEP_MODE_PM2 | SLEEP_OSC_PD)

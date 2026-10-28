@@ -69,7 +69,7 @@ __bit gDrawFromFlash;
 // Use the locally in a routine but DO NOT call anything if you care
 // about the value !!
 __xdata uint16_t TempU16;
-__xdata uint16_t TempU8;
+__xdata uint8_t TempU8;
 
 __xdata uint32_t gEEpromAdr;
 
@@ -94,7 +94,7 @@ void DoPass(void);
 #define BYTES_PER_PLANE    (BYTES_PER_LINE * SCREEN_HEIGHT)
 
 // scratch buffer of BLOCK_XFER_BUFFER_SIZE (0x457 / 2079 bytes)
-extern uint8_t __xdata blockbuffer[];
+#include "syncedproto.h"
 
 #define eih ((struct EepromImageHeader *__xdata) blockbuffer)
 void drawImageAtAddress(uint32_t addr) __reentrant 
@@ -214,25 +214,9 @@ void DoPass()
          Mask = 0x80;
       }
 #elif defined(UC_8176)
-// Single controller, 1 bits per pixel for B&W, 1 for Red/Yellow
+// This controller consumes the stored bit order directly, one byte at a time.
       for(i = 0; i < BYTES_PER_PART; i++) {
-         while(Mask != 0) {
-            Value <<= 1;
-            if(blockbuffer[i] & Mask) {
-               Value |= 1;
-            }
-            if(Mask & 0b00000001) {
-            // Value ready, send it
-               screenByteTx(Value);
-            }
-
-            Mask >>= 1; // next bit
-            gDrawX++;
-            if(gDrawX == SCREEN_WIDTH) {
-               gDrawX = 0;
-            }
-         }
-         Mask = 0x80;
+         screenByteTx(blockbuffer[i]);
       }
 #else
 #error "Unknown EPD controller"
@@ -268,7 +252,7 @@ void DrawScreen(DrawingFunction DrawIt)
 // bmp[0] =  bmp width in pixels (must be a multiple of 8)
 // bmp[1] =  bmp height in pixels
 // bmp[2...] = pixel data 1BBP
-void loadRawBitmap(uint8_t *bmp)
+void loadRawBitmap(const uint8_t __code *bmp)
 {
    uint8_t Width = bmp[0];
 
@@ -406,7 +390,7 @@ void epdPutchar(uint32_t data) __reentrant
    gCharX += gCharWidth + 1;
 
    if(gLargeFont) {
-      InMask = 0x8000 >> ((gDrawY - gWinY) / 2);
+      InMask = 0x8000 >> ((uint16_t)(gDrawY - gWinY) >> 1);
    }
    else {
       InMask = 0x8000 >> (gDrawY - gWinY);
@@ -415,7 +399,7 @@ void epdPutchar(uint32_t data) __reentrant
 
    LOGV("  InMask 0x%x blockbuffer 0x%x\n",InMask,blockbuffer[gWinBufNdx]);
    for(TempU8 = 0; TempU8 < gCharWidth; TempU8++) {
-      FontBits = gPackedData[TempU16];
+      FontBits = gFontColumnDictionary[gPackedGlyphColumnIndices[TempU16]];
       LOGV("  FontBits 0x%x\n",FontBits);
       if(gLargeFont) {
          if(TempU8 & 1) {

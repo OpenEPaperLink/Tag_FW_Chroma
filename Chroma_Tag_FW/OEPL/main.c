@@ -94,7 +94,7 @@ uint8_t channelSelect(uint8_t rounds)
 void TagAssociated() 
 {
    // associated
-   struct AvailDataInfo *__xdata avail;
+   struct AvailDataInfo __xdata *__xdata avail;
    // Is there any reason why we should do a long (full) get data request (including reason, status)?
    if(longDataReqCounter > LONG_DATAREQ_INTERVAL 
       || wakeUpReason != WAKEUP_REASON_TIMED 
@@ -114,7 +114,7 @@ void TagAssociated()
          }
       }
 
-      avail = getAvailDataInfo();
+      avail = getAvailDataInfo(true);
       if(avail != NULL) {
       // we got some data!
          longDataReqCounter = 0;
@@ -132,7 +132,7 @@ void TagAssociated()
       }
    }
    else {
-      avail = getShortAvailDataInfo();
+      avail = getAvailDataInfo(false);
    }
 
    addAverageValue();

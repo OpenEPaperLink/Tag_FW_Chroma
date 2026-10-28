@@ -32,6 +32,8 @@ Where \<version\> is the 4 digit firmware version in hex for example "chroma29_8
 Binaries are available here:  https://github.com/OpenEPaperLink/OpenEPaperLink/tree/master/binaries/Tag
 
 Refer the table above for the correct filename. 
+
+Version `0x0016` adds packed-row G5 image decompression while retaining raw image support. See [G5 file handling, AP configuration and validation](docs/g5.md) before enabling compressed images or publishing new binaries.
  
 ## Building from Source
  

@@ -98,7 +98,7 @@ void DoPass(void);
 #define BYTES_PER_PLANE    (BYTES_PER_LINE * SCREEN_HEIGHT)
 
 // scratch buffer of BLOCK_XFER_BUFFER_SIZE (0x457 / 2079 bytes)
-extern uint8_t __xdata blockbuffer[];
+#include "syncedproto.h"
 
 #define eih ((struct EepromImageHeader *__xdata) blockbuffer)
 void drawImageAtAddress(uint32_t addr) __reentrant 
@@ -176,6 +176,12 @@ void DoPass()
          }
       }
 
+#if defined(HW_VARIANT) && HW_VARIANT == 1
+// UC8151 uses one output bit per input bit for both display passes.
+      for(i = 0; i < BYTES_PER_PART; i++) {
+         screenByteTx(gRedPass ? blockbuffer[i] : (uint8_t)~blockbuffer[i]);
+      }
+#else
       for(i = 0; i < BYTES_PER_PART; i++) {
          while(Mask != 0) {
 #ifndef HW_VARIANT
@@ -225,6 +231,7 @@ void DoPass()
          }
          Mask = 0x80;
       }
+#endif
       gPartY += LINES_PER_PART;
    }
    einkDeselect();
@@ -252,7 +259,7 @@ void DrawScreen(DrawingFunction DrawIt)
 // bmp[0] =  bmp width in pixels (must be a multiple of 8)
 // bmp[1] =  bmp height in pixels
 // bmp[2...] = pixel data 1BBP
-void loadRawBitmap(uint8_t *bmp)
+void loadRawBitmap(const uint8_t __code *bmp)
 {
    uint8_t Width;
    uint8_t Bits;
@@ -421,7 +428,7 @@ void epdPutchar(uint32_t data) __reentrant
       TempU8 /= 2;
    }
    TempU16 += TempU8;
-   FontBits = gPackedData[TempU16];
+   FontBits = gFontColumnDictionary[gPackedGlyphColumnIndices[TempU16]];
    LOGV("TempU16 %d gCharHeight %d FontBits 0x%x\n",TempU16,gCharHeight,FontBits);
 
    for(TempU8 = 0; TempU8 < gCharHeight; TempU8++) {

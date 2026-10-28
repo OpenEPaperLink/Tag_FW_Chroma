@@ -31,7 +31,7 @@ extern DrawingFunction gDrawingFunct;
 void drawImageAtAddress(uint32_t addr);
 
 #pragma callee_saves loadRawBitmap
-void loadRawBitmap(uint8_t *bmp);
+void loadRawBitmap(const uint8_t __code *bmp);
 
 //expected external funcs
 #pragma callee_saves fwVerString

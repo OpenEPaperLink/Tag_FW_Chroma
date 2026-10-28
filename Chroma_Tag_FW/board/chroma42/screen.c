@@ -217,17 +217,16 @@ static const uint8_t __code gStartRefresh[] = {
 };
 
 
-#pragma callee_saves screenPrvSendCommand
-static inline void screenPrvSendCommand(uint8_t cmdByte)
-{
-   screenPrvWaitByteSent();
-   P0 &= (uint8_t) ~P0_EPD_D_nCMD;
-   __asm__("nop");
-   screenByteTx(cmdByte);
-   __asm__("nop");
-   screenPrvWaitByteSent();
-   P0 |= P0_EPD_D_nCMD;
-}
+#define screenPrvSendCommand(cmdByte) do { \
+   uint8_t epdCommandByte_ = (cmdByte); \
+   screenPrvWaitByteSent(); \
+   P0 &= (uint8_t) ~P0_EPD_D_nCMD; \
+   __asm__("nop"); \
+   screenByteTx(epdCommandByte_); \
+   __asm__("nop"); \
+   screenPrvWaitByteSent(); \
+   P0 |= P0_EPD_D_nCMD; \
+} while (0)
 
 void P1INT_ISR(void) __interrupt (15)
 {

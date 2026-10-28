@@ -27,11 +27,11 @@ static int8_t prvReadSetting(uint8_t type, uint8_t __xdata *dst, uint8_t maxLen)
    __bit found = false;
    
    for (pg = 0; pg < 10; pg++) {
-      uint16_t __pdata addr = mathPrvMul16x8(EEPROM_ERZ_SECTOR_SZ, pg);
+      uint16_t __pdata addr = (uint16_t)pg * EEPROM_ERZ_SECTOR_SZ;
       uint16_t __pdata ofst = 4;
       
       eepromRead(addr, tmpBuf, 4);
-      if (xMemEqual(tmpBuf, magicNum, 4)) {
+      if (xMemEqual4(tmpBuf, magicNum)) {
          while (ofst < EEPROM_ERZ_SECTOR_SZ) {
          // first byte is type, (0xff for done), second is length
             eepromRead(addr + ofst, tmpBuf, 2);
@@ -106,8 +106,8 @@ void LoadGlobalsFromEEPROM()
 // If the built in default SN has been patched make sure it matches the SN
 // in EEPROM.  This allows recovery from accidentially programming the same
 // SN into two displays
-   if(!xMemEqual(pHARD_CODED_SN,&gTempBuf320[16],4) && 
-      !xMemEqual(pHARD_CODED_SN,&gTempBuf320[2],4))
+   if(!xMemEqual4(pHARD_CODED_SN,&gTempBuf320[16]) &&
+      !xMemEqual4(pHARD_CODED_SN,&gTempBuf320[2]))
    {  // The hardcoded SN is not the default (all zeros) and the SN in
       // EEPROM does not match, set EEPROM to the (new) defaults
       NV_DATA_LOG("Set SN to patched value\n");
@@ -142,10 +142,9 @@ void LoadGlobalsFromEEPROM()
    LOGA("HW variant %d\n",HW_VARIANT);
 #endif
 
-   spr(gMacString,"%02X%02X",mSelfMac[7],mSelfMac[6]);
-   spr(gMacString+4,"%02X%02X",mSelfMac[5],mSelfMac[4]);
-   spr(gMacString+8,"%02X%02X",mSelfMac[3],mSelfMac[2]);
-   spr(gMacString+12,"%02X%02X",mSelfMac[1],mSelfMac[0]);
+   /* The formatter's addressed 64-bit hex mode preserves all leading zeros
+    * and emits the same sixteen uppercase digits, most-significant byte first. */
+   spr(gMacString,"%*016llX",(uintptr_near_t)mSelfMac);
 #ifdef SCREEN_EXPECTS_VCOM
    if(prvReadSetting(0x23,&mScreenVcom,1) < 0) {
       NV_DATA_LOG("failed to get VCOM\n");
@@ -321,6 +320,7 @@ void clockingAndIntsInit(void)
    SLEEP = SLEEP_OSC_PD;   //power down the unused (HFRC oscillator)
 }
 
+#if !defined(RELEASE_BUILD)
 uint8_t rndGen8(void)
 {
    ADCCON1 |= 4;
@@ -351,4 +351,4 @@ void rndSeed(uint8_t seedA, uint8_t seedB)
    RNDL = seedA;
    RNDL = seedB;
 }
-
+#endif

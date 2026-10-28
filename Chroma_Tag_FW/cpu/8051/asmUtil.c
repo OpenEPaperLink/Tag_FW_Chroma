@@ -1,8 +1,12 @@
 #include "asmUtil.h"
 #include "cpu.h"
+#include "board.h"
+#include "settings.h"
 
 
 #pragma callee_saves mathPrvU8bitswap
+/* Keep the wider helper API in debug builds; release has no callers. */
+#if !defined(RELEASE_BUILD)
 uint16_t mathPrvU16from2xU8(uint8_t hi, uint8_t lo) __reentrant __naked
 {
 	__asm__(
@@ -76,8 +80,11 @@ int16_t mathPrvI16Asr1(int16_t val) __reentrant __naked
 	);
 	(void)val;
 }
+#endif
+
 
 #pragma callee_saves mathPrvMul8x8
+#if !defined(RELEASE_BUILD) || !defined(DISABLE_BARCODES) || !defined(SFDP_DISABLED)
 uint16_t mathPrvMul8x8(uint8_t a, uint8_t b) __reentrant __naked
 {
 	//return expected in DPTR, first param is in DPL, second on stack
@@ -105,6 +112,8 @@ uint16_t mathPrvMul8x8(uint8_t a, uint8_t b) __reentrant __naked
 	(void)a;
 	(void)b;
 }
+#endif
+
 
 #pragma callee_saves mathPrvMul16x8
 uint32_t mathPrvMul16x8(uint16_t a, uint8_t b) __reentrant __naked
@@ -377,6 +386,7 @@ void u64_copy(uint64_t __xdata *dst, const uint64_t __xdata *src) __reentrant __
 	(void)src;
 }
 
+#if !defined(RELEASE_BUILD)
 void u64_copyFromCode(uint64_t __xdata *dst, const uint64_t __code *src) __reentrant __naked 
 {
 	__asm__(
@@ -577,6 +587,8 @@ void u64_dec(uint64_t __xdata *dst) __reentrant __naked
 	);
 	(void)dst;
 }
+#endif
+
 
 
 #pragma callee_saves xMemSet
@@ -665,6 +677,7 @@ __bit xMemEqual(const void __xdata* memA, const void __xdata* memB, uint8_t num)
 }
 
 #pragma callee_saves xMemCopy
+#if !defined(RELEASE_BUILD)
 void xMemCopy(void __xdata* dst, const void __xdata* src, uint16_t num) __reentrant __naked
 {
 	__asm__(
@@ -713,6 +726,8 @@ void xMemCopy(void __xdata* dst, const void __xdata* src, uint16_t num) __reentr
 }
 
 #pragma callee_saves xMemCopyShort
+#endif
+
 void xMemCopyShort(void __xdata* dst, const void __xdata* src, uint8_t num) __reentrant __naked
 {
 	__asm__(
@@ -990,6 +1005,7 @@ uint32_t mathPrvDiv32x16(uint32_t num, uint16_t denom) __reentrant __naked
 }
 
 #pragma callee_saves static mathPrvDiv32x16
+#if !defined(RELEASE_BUILD) || defined(DEBUG_SLEEP)
 uint16_t mathPrvMod32x16(uint32_t num, uint16_t denom) __reentrant __naked
 {
 	__asm__(
@@ -1000,8 +1016,11 @@ uint16_t mathPrvMod32x16(uint32_t num, uint16_t denom) __reentrant __naked
 	(void)num;
 	(void)denom;
 }
+#endif
+
 
 #pragma callee_saves mathPrvDiv32x8
+#if !defined(RELEASE_BUILD)
 uint32_t mathPrvDiv32x8(uint32_t num, uint8_t denom) __reentrant __naked
 {
 	__asm__(
@@ -1168,6 +1187,8 @@ uint32_t mathPrvDiv32x8(uint32_t num, uint8_t denom) __reentrant __naked
 	(void)num;
 	(void)denom;
 }
+#endif
+
 
 #pragma callee_saves mathPrvDivMod16x8
 static uint16_t mathPrvDivMod16x8(uint16_t num, uint8_t denom) __reentrant  __naked
@@ -1304,6 +1325,7 @@ uint16_t mathPrvDiv16x8(uint16_t num, uint8_t denom) __reentrant __naked
 }
 
 #pragma callee_saves mathPrvMod16x8
+#if !defined(RELEASE_BUILD) || !defined(DISABLE_BARCODES)
 uint8_t mathPrvMod16x8(uint16_t num, uint8_t denom) __reentrant __naked
 {
 	__asm__(
@@ -1314,7 +1336,10 @@ uint8_t mathPrvMod16x8(uint16_t num, uint8_t denom) __reentrant __naked
 	(void)num;
 	(void)denom;
 }
+#endif
 
+
+#if !defined(RELEASE_BUILD) || !defined(DISABLE_BARCODES)
 char charsPrvDerefAndIncGenericPtr(const char * __xdata* __xdata str) __naked
 {
 	__asm__(
@@ -1329,8 +1354,8 @@ char charsPrvDerefAndIncGenericPtr(const char * __xdata* __xdata str) __naked
 		"	movx @DPTR, A			\n"
 		"	inc  DPTR				\n"
 		"	movx A, @DPTR			\n"
-		"	pop  _DPH				\n"
-		"	pop  _DPL				\n"
+		"	pop  DPH				\n"
+		"	pop  DPL				\n"
 		"	jz   00001$				\n"		//check for xdata, taken if yes
 		"	cjne A, #0x60, 00002$	\n"		//check for pdata, taken if no
 		
@@ -1369,7 +1394,10 @@ char charsPrvDerefAndIncGenericPtr(const char * __xdata* __xdata str) __naked
 	
 	(void)str;
 }
+#endif
 
+
+#if !defined(RELEASE_BUILD)
 void mathPrvCopyPostinc(uint32_t __xdata *dst, uint32_t __xdata *src) __reentrant __naked
 {
 	__asm__(
@@ -1396,6 +1424,8 @@ void mathPrvCopyPostinc(uint32_t __xdata *dst, uint32_t __xdata *src) __reentran
 	(void)dst;
 	(void)src;
 }
+#endif
+
 
 __bit xMemEqual4(const void __xdata* memA, const void __xdata* memB) __reentrant __naked
 {
@@ -1424,6 +1454,7 @@ __bit xMemEqual4(const void __xdata* memA, const void __xdata* memB) __reentrant
 	(void)memB;
 }
 
+#if !defined(RELEASE_BUILD)
 __bit u32minusU16(uint32_t __xdata *u32, uint16_t u16) __naked __reentrant
 {
 	__asm__(
@@ -1498,5 +1529,4 @@ __bit i32Negative(uint32_t __xdata *u32) __naked __reentrant
 	);
 	(void)u32;
 }
-
-
+#endif

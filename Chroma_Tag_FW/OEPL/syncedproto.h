@@ -2,7 +2,13 @@
 #define SYNCED_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "settings.h"
+#include "g5.h"
+#ifndef __packed
+#define __packed
+#endif
+#include "oepl-proto.h"
 
 extern uint8_t __xdata gCurrentChannel;
 extern uint8_t __xdata gSubGhzBand;
@@ -27,16 +33,18 @@ For CC1110 tags the request is broken into 2 "sub-blocks" of 21 99 byte parts.
 #undef BLOCK_XFER_BUFFER_SIZE
 #define BLOCK_XFER_BUFFER_SIZE (sizeof(struct blockData) + BLOCK_DATA_SIZE_SUBGIG)
 
-extern uint8_t __xdata blockbuffer[BLOCK_XFER_BUFFER_SIZE];
-extern bool checkCRC(const void *p, const uint8_t len);
+union ImageScratch {
+    uint8_t bytes[BLOCK_XFER_BUFFER_SIZE];
+    G5Workspace g5;
+};
+extern union ImageScratch __xdata imageScratch;
+#define blockbuffer (imageScratch.bytes)
+extern bool checkCRC(const void __xdata *p, const uint8_t len);
 extern uint8_t __xdata findSlotDataTypeArg(uint8_t arg) __reentrant;
-extern uint8_t __xdata findNextSlideshowImage(uint8_t start) __reentrant;
-extern uint8_t getEepromImageDataArgument(const uint8_t slot);
-extern struct AvailDataInfo *__xdata getAvailDataInfo(void);
-extern struct AvailDataInfo *__xdata getShortAvailDataInfo(void);
+extern struct AvailDataInfo __xdata *__xdata getAvailDataInfo(bool full);
 extern void drawImageFromEeprom(const uint8_t imgSlot, uint8_t lut);
 extern void eraseImageBlocks(void);
-extern bool processAvailDataInfo(struct AvailDataInfo *__xdata avail);
+extern bool processAvailDataInfo(struct AvailDataInfo __xdata *__xdata avail);
 extern void initializeProto(void);
 extern uint8_t detectAP(const uint8_t channel);
 #endif

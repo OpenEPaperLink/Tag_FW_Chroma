@@ -1,7 +1,7 @@
 #ifndef _LOGGING_H_
 #define _LOGGING_H_
 
-extern void DumpHex(const uint8_t *__xdata a, const uint16_t __xdata l);
+extern void DumpHex(const uint8_t __xdata *__xdata a, const uint16_t __xdata l);
 
 // LOGA always logs
 #define LOGA(format, ... ) pr(format,## __VA_ARGS__)

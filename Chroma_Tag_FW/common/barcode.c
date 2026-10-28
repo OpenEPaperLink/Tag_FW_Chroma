@@ -1,3 +1,7 @@
+/* Read board and build feature flags before deciding whether to emit the encoder. */
+#include "board.h"
+#include "settings.h"
+
 #ifndef DISABLE_BARCODES
 
 #include <stdbool.h>

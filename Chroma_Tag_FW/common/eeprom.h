@@ -22,6 +22,7 @@ void eepromOtpModeExit(void);
 void eepromRead(uint32_t addr, void __xdata *dst, uint16_t len) __reentrant;
 
 #pragma callee_saves eepromWrite
+/* Returns after the final page program has completed. */
 void eepromWrite(uint32_t addr, const void __xdata *src, uint16_t len) __reentrant;
 
 #pragma callee_saves eepromErase

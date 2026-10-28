@@ -283,11 +283,18 @@ static const uint8_t __code  lut25[] = {
    0x04,0x06
 };
 
+_Static_assert(sizeof(lut20) <= 255 && sizeof(lut21) <= 255 &&
+               sizeof(lut22) <= 255 && sizeof(lut25) <= 255,
+               "stored LUT length must fit its byte-sized descriptor");
+
 struct Atc1441Luts {
    uint8_t Cmd;
    const uint8_t __code *Lut;
-   uint16_t LutLen;
-} gLuts[] = {
+   uint8_t LutLen;
+};
+
+/* Stored tables omit their zero tails; controller transfer lengths stay 16-bit. */
+static const struct Atc1441Luts __code gLuts[] = {
    {0x20,lut20,sizeof(lut20)},         // Vcom
    {0x29,NULL,0},                      // Xon, all zero per factory script
    {LUT_CMD_000,lut21,sizeof(lut21)},  // black
@@ -311,17 +318,16 @@ static const uint8_t __code gPwrOffEpd[] = {
 };
 
 
-#pragma callee_saves screenPrvSendCommand
-static inline void screenPrvSendCommand(uint8_t cmdByte)
-{
-   screenPrvWaitByteSent();
-   P0 &= (uint8_t) ~P0_EPD_D_nCMD;
-   __asm__("nop");
-   screenByteTx(cmdByte);
-   __asm__("nop");
-   screenPrvWaitByteSent();
-   P0 |= P0_EPD_D_nCMD;
-}
+#define screenPrvSendCommand(cmdByte) do { \
+   uint8_t epdCommandByte_ = (cmdByte); \
+   screenPrvWaitByteSent(); \
+   P0 &= (uint8_t) ~P0_EPD_D_nCMD; \
+   __asm__("nop"); \
+   screenByteTx(epdCommandByte_); \
+   __asm__("nop"); \
+   screenPrvWaitByteSent(); \
+   P0 |= P0_EPD_D_nCMD; \
+} while (0)
 
 
 void P1INT_ISR(void) __interrupt (15)
@@ -394,15 +400,18 @@ static void screenInitIfNeeded()
    screenByteTx(0x77);
    einkDeselect();
    
-   int8_t i;
+   const struct Atc1441Luts __code *entry;
    int16_t j;
    int16_t LutLen;
-   for(i = 0; gLuts[i].Cmd != 0; i++) {
-      if(gLuts[i].Cmd == 0x20) {
+   for(entry = gLuts; entry->Cmd; ++entry) {
+      uint8_t command = entry->Cmd;
+      const uint8_t __code *data = entry->Lut;
+      uint8_t stored = entry->LutLen;
+      if(command == 0x20) {
       // VCOM LUT
          LutLen = 220;
       }
-      else if(gLuts[i].Cmd == 0x29) {
+      else if(command == 0x29) {
       // Xon LUT
          LutLen = 200;
       }
@@ -411,9 +420,9 @@ static void screenInitIfNeeded()
          LutLen = 260;
       }
       einkSelect();
-      screenPrvSendCommand(gLuts[i].Cmd);
-      for(j = 0; j < gLuts[i].LutLen; j++) {
-         screenByteTx(gLuts[i].Lut[j]);
+      screenPrvSendCommand(command);
+      for(j = 0; j < stored; j++) {
+         screenByteTx(data[j]);
       }
 
       if(j < LutLen) {

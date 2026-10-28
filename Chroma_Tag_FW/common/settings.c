@@ -51,11 +51,11 @@ void loadDefaultSettings()
    gSubGhzBand = BAND_UNKNOWN;
 }
 
-void loadSettingsFromBuffer(uint8_t* p) 
+void loadSettingsFromBuffer(uint8_t __xdata* p)
 {
    if(*p == SETTINGS_STRUCT_VERSION) {
       SETTINGS_LOG("Saved settings from AP\n");
-      xMemCopyShort((void*)tagSettings, (void*)p, sizeof(struct tagsettings));
+      xMemCopyShort(&tagSettings, p, sizeof(struct tagsettings));
       writeSettings();
    }
    else {
@@ -107,7 +107,7 @@ void writeSettings()
 // check if the settings match the settings in the eeprom
    eepromRead(EEPROM_SETTINGS_AREA_START,(void*)Settings,sizeof(*Settings));
    if(Settings->Magic == SETTINGS_MAGIC
-      && memcmp((void*)&Settings->OeplSettings,(void*)tagSettings,sizeof(tagSettings)) == 0
+      && xMemEqual(&Settings->OeplSettings, &tagSettings, sizeof(tagSettings))
       && Settings->CurrentChannel == gCurrentChannel)
    {
       SETTINGS_LOG("No change\n");
