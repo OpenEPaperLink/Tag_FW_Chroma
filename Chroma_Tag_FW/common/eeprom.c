@@ -314,6 +314,9 @@ void eepromWrite(uint32_t addr, const void __xdata *srcP, uint16_t len) __reentr
       src += lenNow;
       len -= lenNow;
    }
+   /* Do not let a following compressed-source refill or image-header read
+    * run while the final NOR page program is still busy. */
+   eepromPrvBusyWait();
 }
 
 bool eepromErase(uint32_t addr, uint16_t nSec) __reentrant 

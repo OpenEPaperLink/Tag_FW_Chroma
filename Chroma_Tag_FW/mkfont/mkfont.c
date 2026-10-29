@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
       }
    }
    else {
-      PackFont();
+      Ret = PackFont();
    }
    return Ret;
 }
@@ -147,6 +147,9 @@ int PackFont()
    int CharWidth;
    int TotalCharWidth = 0;
    uint8_t *pPackedData = (uint8_t *) gPackedData;
+   uint16_t ColumnDictionary[DEFINED_CHARS * FONT_WIDTH];
+   uint16_t ColumnIndices[DEFINED_CHARS * FONT_WIDTH];
+   int DictionaryLen = 0;
 
    FillFontData();
 
@@ -214,7 +217,7 @@ int PackFont()
        - sizeof(gFontIndexTbl) 
        - (FontDataOffset * sizeof(uint16_t)));
 
-   printf("static const uint16_t __code gFontIndexTbl[96] = {\n");
+   printf("const uint16_t __code gFontIndexTbl[96] = {\n");
    for(i = 0; i < DEFINED_CHARS; i++) {
       CharWidth = gFontIndexTbl[i] >> 12;
       FontDataOffset = gFontIndexTbl[i] & 0xfff;
@@ -230,12 +233,30 @@ int PackFont()
    }
    printf("\n};\n\n");
 
-   printf("static const uint16_t __code gPackedData[%d] = {",FontDataLen);
    for(i = 0; i < FontDataLen; i++) {
-      if((i % 8) == 0) {
-         printf("\n// 0x%x\n   ",i);
+      for(j = 0; j < DictionaryLen; j++) {
+         if(ColumnDictionary[j] == gPackedData[i]) break;
       }
-      printf("0x%04x,",(unsigned int) gPackedData[i]);
+      if(j == DictionaryLen) {
+         ColumnDictionary[DictionaryLen++] = gPackedData[i];
+      }
+      ColumnIndices[i] = (uint16_t)j;
+   }
+
+   printf("static const uint16_t __code gFontColumnDictionary[%d] = {",DictionaryLen);
+   for(i = 0; i < DictionaryLen; i++) {
+      if((i % 8) == 0) printf("\n   ");
+      printf("0x%04x,",(unsigned int)ColumnDictionary[i]);
+   }
+   printf("\n};\n\n");
+
+   /* Keep custom fonts with more than 256 distinct columns representable too. */
+   printf("static const %s __code gPackedGlyphColumnIndices[%d] = {",
+          DictionaryLen <= 256 ? "uint8_t" : "uint16_t",FontDataLen);
+   for(i = 0; i < FontDataLen; i++) {
+      if((i % 16) == 0) printf("\n   ");
+      printf(DictionaryLen <= 256 ? "0x%02x," : "0x%04x,",
+             (unsigned int)ColumnIndices[i]);
    }
    printf("\n};\n\n");
 

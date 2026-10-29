@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "cpu.h"
+#include "settings.h"
 
 
 // T1CC0 increments at at a 0.38743 Hz rate
@@ -35,10 +36,13 @@ uint32_t timerGet(void)
 	return val.ret;
 }
 
+#if !defined(RELEASE_BUILD)
 uint8_t timerGetLowBits(void)
 {
 	return T1CNTL;
 }
+#endif
+
 
 void timerInit(void)
 {

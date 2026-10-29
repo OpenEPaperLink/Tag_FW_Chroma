@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define RELEASE_BUILD            // include gDefaultEEPROM support
-#define FW_VERSION 0x0015        // version number
+#define FW_VERSION 0x0016        // version number
 
 #define SFDP_DISABLED         // Disable SFDP to save 1538 bytes.
 
@@ -95,5 +95,5 @@ extern struct tagsettings __xdata tagSettings;
 void loadDefaultSettings();
 void writeSettings();
 void loadSettings();
-void loadSettingsFromBuffer(uint8_t* p);
+void loadSettingsFromBuffer(uint8_t __xdata* p);
 #endif
