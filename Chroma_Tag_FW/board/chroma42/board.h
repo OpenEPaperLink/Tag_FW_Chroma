@@ -7,6 +7,11 @@
 #define CHROMA42
 #define HW_TYPE    0x83
 
+// Defaults for the factory NVRAM, used in gDefaultEEPROM and when a
+// calibration value is missing from the NVRAM
+#define DEFAULT_ADC_INTERCEPT  0x02ec
+#define DEFAULT_ADC_SLOPE      0x0a5a
+
 #ifndef HW_VARIANT
    #define BWR
    #define UC_8154

@@ -8,8 +8,8 @@
 const uint8_t __code gDefaultEEPROM[] = {
    0x56, 0x12, 0x09, 0x85, // magic number
    0x01,8,'J','A',0,0,0,0, // Default to JA00000000 if we can't get the SN
-   0x09,4,0xec,0x02, // ADC intercept
-   0x12,4,0x5a,0x0a, // ADC slope
+   0x09,4,DEFAULT_ADC_INTERCEPT & 0xff,DEFAULT_ADC_INTERCEPT >> 8, // ADC intercept
+   0x12,4,DEFAULT_ADC_SLOPE & 0xff,DEFAULT_ADC_SLOPE >> 8, // ADC slope
 // 0xff        // end of settings (erased EEPROM)
 };
 #endif
@@ -32,7 +32,7 @@ void powerPortsDownForSleep(void)
 // P1.1 is P1_EPD_nCS0 so we leave it as an output
    P1DIR = P1_EPD_nCS0;
 
-   if(mSelfMac[3] == 0 && (mSelfMac[2] & 0xf0) == 0) {
+   if(mSelfMac[3] == 0 && (mSelfMac[2] & 0xf0) == 0 && !SN_IS_ZERO()) {
    // JA000xxxxx devices do not implement EPD power control
 
    // set EPD_nCS0 high (it should already be, but make sure)
@@ -59,6 +59,10 @@ void powerPortsDownForSleep(void)
    // drive EPD pins low prevent back powering the display
       P0 &= ~P0_EPD_PINS;
       P1 &= ~P1_EPD_PINS;
+      if(SN_IS_ZERO()) {
+      // might be a JA000 tag whose EPD stays powered and drives BUSY
+         P1DIR &= ~P1_EPD_BUSY;
+      }
    }
 
 // Disconnect all perpherials from pins

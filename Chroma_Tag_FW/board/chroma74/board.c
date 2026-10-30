@@ -9,18 +9,18 @@
 const uint8_t __code gDefaultEEPROM[] = {
    0x56, 0x12, 0x09, 0x85, // magic number
    0x01,8,'J','M',0,0,0,0, // Default to JM00000000 if we can't get the SN 
-   0x23,3,0x28,            // VCOM
-   0x09,4,0xec,0x02, // ADC intercept
-   0x12,4,0x5a,0x0a, // ADC slope
+   0x23,3,DEFAULT_VCOM,    // VCOM
+   0x09,4,DEFAULT_ADC_INTERCEPT & 0xff,DEFAULT_ADC_INTERCEPT >> 8, // ADC intercept
+   0x12,4,DEFAULT_ADC_SLOPE & 0xff,DEFAULT_ADC_SLOPE >> 8, // ADC slope
 // 0xff        // end of settings (erased EEPROM)
 };
 #elif HW_VARIANT == 1
 const uint8_t __code gDefaultEEPROM[] = {
    0x56, 0x12, 0x09, 0x85, // magic number
    0x01,8,'J','L',0,0,0,0, // Default to JL00000000 if we can't get the SN 
-   0x23,3,0x30,            // VCOM
-   0x09,4,0xf1,0x02, // ADC intercept
-   0x12,4,0x5a,0x0a, // ADC slope
+   0x23,3,DEFAULT_VCOM,    // VCOM
+   0x09,4,DEFAULT_ADC_INTERCEPT & 0xff,DEFAULT_ADC_INTERCEPT >> 8, // ADC intercept
+   0x12,4,DEFAULT_ADC_SLOPE & 0xff,DEFAULT_ADC_SLOPE >> 8, // ADC slope
 // 0xff        // end of settings (erased EEPROM)
 };
 #else

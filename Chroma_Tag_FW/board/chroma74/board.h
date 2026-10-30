@@ -8,6 +8,17 @@
 #define BOARD_NAME "Chroma74"
 #define HW_TYPE    0x80
 
+// Defaults for the factory NVRAM, used in gDefaultEEPROM and when a
+// calibration value is missing from the NVRAM
+#ifndef HW_VARIANT
+#define DEFAULT_VCOM           0x28
+#define DEFAULT_ADC_INTERCEPT  0x02ec
+#else
+#define DEFAULT_VCOM           0x30
+#define DEFAULT_ADC_INTERCEPT  0x02f1
+#endif
+#define DEFAULT_ADC_SLOPE      0x0a5a
+
 #ifndef HW_VARIANT
 // BWY Chroma74 is the base variant
 #define BWY

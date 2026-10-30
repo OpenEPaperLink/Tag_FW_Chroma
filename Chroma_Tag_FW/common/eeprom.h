@@ -30,6 +30,7 @@ bool eepromErase(uint32_t addr, uint16_t numSectors) __reentrant;
 
 void eepromDeepPowerDown(void);
 void eepromWakeFromPowerdown(void);
+__bit eepromResponds(void);
 
 
 #ifdef SFDP_DISABLED
