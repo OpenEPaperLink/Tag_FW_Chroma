@@ -25,11 +25,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
-      - name: Install SDCC 4.2 and build tools
+      - name: Install SDCC 4.6.0 and build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y sdcc make binutils
-          sdcc --version
+          # Install bzip2 system dependency
+          sudo apt-get update && sudo apt-get install -y bzip2
+          
+          # Pull package and extract into a dedicated directory
+          mkdir -p $HOME/sdcc
+          wget -O sdcc.tar.bz2 "https://sourceforge.net/projects/sdcc/files/sdcc-linux-amd64/4.6.0/sdcc-4.6.0-amd64-unknown-linux2.5.tar.bz2/download"
+          tar -xjf sdcc.tar.bz2 --strip-components=1 -C $HOME/sdcc
+          
+          # Inject the new binaries directly into the GitHub Runner environment PATH
+          echo "$HOME/sdcc/bin" >> $GITHUB_PATH
       - run: make -C Chroma_Tag_FW/OEPL BUILD=${{ matrix.build }}
       - name: Check flash and legacy OTA payload limit
         env:
