@@ -332,41 +332,19 @@ void eepromWrite(uint32_t addr, const void __xdata *srcP, uint16_t len) __reentr
    eepromPrvBusyWait();
 }
 
-bool eepromErase(uint32_t addr, uint16_t nSec) __reentrant 
+void eepromErase(uint32_t addr, uint16_t nSec) __reentrant 
 {
-   uint8_t now;
-
-   if(((uint16_t)addr) & 0x0fff) {
-      return false;
-   }
-
-   for(; nSec; nSec -= now) {
+   while(nSec--) {
       eepromPrvSimpleCmd(0x06);
       eepromPrvSelect();
-
-      if(nSec >= 16 && !(uint16_t)addr && mOpcodeErz64K) {
-      // erase 64K
-         eepromByte(mOpcodeErz64K);
-         now = 16;
-      }
-      else if(nSec >= 8 && !(((uint16_t)addr) & 0x7fff) && mOpcodeErz32K) {  
-      // erase 32K
-         eepromByte(mOpcodeErz32K);
-         now = 8;
-      }
-      else {
-      // erase 4K
-         eepromByte(mOpcodeErz4K);
-         now = 1;
-      }
-
+   // erase 4K
+      eepromByte(EEPROM_4K_ERASE_OPCODE);
       eepromByte(addr >> 16);
       eepromByte(addr >> 8);
       eepromByte(addr);
       eepromPrvDeselect();
       eepromPrvBusyWait();
-      addr += mathPrvMul16x8(EEPROM_ERZ_SECTOR_SZ, now);
+      addr += EEPROM_ERZ_SECTOR_SZ;
    }
-   return true;
 }
 
