@@ -73,6 +73,7 @@ release: $(PREBUILT_DIR) ${HDR_TOOL} all $(RELEASE_BINS)
 DEPFILES := $(SOURCES:%.c=$(BUILD_DIR)/%.d)
 
 debug:
+	@echo "FIRMWARE_ROOT=$(FIRMWARE_ROOT)"
 	@echo "PREBUILT_DIR=$(PREBUILT_DIR)"
 
 build_info:
