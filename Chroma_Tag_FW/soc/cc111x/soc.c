@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "logging.h"
 #include "timer.h"
+#include "flashcopy.h"
 
 #define pHARD_CODED_SN  ((const void __xdata*) &gDefaultEEPROM[8])
 
@@ -206,73 +207,13 @@ static uint32_t prvUpdateApplierGet(void) __naked
       //erase all flash
       "  clr   _FADDRH           \n"
       "  clr   _FADDRL           \n"   
-      "00001$:                \n"
-      "  orl   _FCTL, #0x01         \n"
-      "  nop                     \n"   //as per datasheet
-      "00002$:                \n"
-      "  mov   A, _FCTL          \n"
-      "  jb    A.7, 00002$       \n"
-      "  inc   _FADDRH           \n"
-      "  inc   _FADDRH           \n"
-      "  djnz  B, 00001$            \n"
+      FLASH_ERASE_PAGES_ASM
       
       //write all 32K
       //due to the 40 usec timeout, we wait each time to avoid it
       "  mov   DPTR, #0       \n"
       
-      "00003$:                \n"
-      "  mov   _FADDRH, DPH         \n"
-      "  mov   _FADDRL, DPL         \n"
-      "  inc   DPTR              \n"
-      "  mov   _FWT, #0x22       \n"
-      
-      //get two bytes
-   
-      "   mov   B, #2               \n"
-      
-      "00090$:                \n"
-      "  mov   _U1DBUF, #0x00    \n"
-      
-      "00091$:                \n"
-      "  mov   A, _U1CSR            \n"
-      "  jnb   A.1, 00091$       \n"
-      
-      "  anl   _U1CSR, #~0x02    \n"
-      
-      "00092$:                \n"
-      "  mov   A, _U1CSR            \n"
-      "  jb    A.0, 00092$       \n"
-      
-      "  push  _U1DBUF           \n"
-      "  djnz  B, 00090$            \n"
-      
-      //write two bytes
-      "  orl   _FCTL, #0x02         \n"
-      
-      //wait for fwbusy to go low
-      "00012$:                \n"
-      "  mov   A, _FCTL          \n"
-      "  jb    A.6, 00012$       \n"
-      
-      "  pop   A                 \n"
-      "  pop   _FWDATA           \n"
-      "  mov   _FWDATA, A        \n"
-      
-      //wait for swbusy to be low
-      "00004$:                \n"
-      "  mov   A, _FCTL          \n"
-      "  jb    A.6, 00004$       \n"
-      
-      "  anl   _FCTL, #~0x02        \n"
-      
-      //wait for busy to be low
-      "00005$:                \n"
-      "  mov   A, _FCTL          \n"
-      "  jb    A.7, 00005$       \n"
-      
-      //loop for next two bytes
-      "  mov   A, DPH            \n"
-      "  cjne  A, #0x40, 00003$     \n"
+      FLASH_WRITE_FROM_SPI_ASM
       
       //done
    
@@ -301,36 +242,6 @@ void selfUpdate(void)
       "  clr a                \n"
       "  jmp @a+dptr             \n"
    );
-}
-
-void clockingAndIntsInit(void)
-{
-   uint8_t i, j;
-   
-   IEN0 = 0;
-   IEN1 = 0;
-   IEN2 = 0;
-
-// enable cache and prefetch
-   MEMCTR = 0; 
-   
-   SLEEP = 0;              //SLEEP.MODE = 0 to use HFXO
-   while (!(SLEEP & SLEEP_HFRC_S));   //wait for HFRC to stabilize
-// high speed RC osc, timer clock is 203.125KHz, 13MHz system clock
-//   CLKCON = 0x79;          //high speed RC osc, timer clock is 203.125KHz, 13MHz system clock
-   CLKCON = CLKCON_OSC | CLKCON_TICKSPD(7) | CLKCON_CLKSPD(1);
-   while (!(SLEEP & SLEEP_XOSC_S));   //wait for HFXO to stabilize
-   
-   //we need to delay more (chip erratum)
-   for (i = 0; i != 128; i++) for (j = 0; j != 128; j++) __asm__ ("nop");
-   
-// switch to HFXO
-   CLKCON = CLKCON_CLKSPD(1) | CLKCON_TICKSPD(7);
-   while(CLKCON & CLKCON_OSC);   //wait for the switch
-// Select 26MHz system clock and 203.125KHz timer clock
-   CLKCON = CLKCON_CLKSPD(0) | CLKCON_TICKSPD(7);
-
-   SLEEP = SLEEP_OSC_PD;   //power down the unused (HFRC oscillator)
 }
 
 #if !defined(RELEASE_BUILD)

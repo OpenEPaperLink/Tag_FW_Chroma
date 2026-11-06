@@ -31,7 +31,7 @@ SOURCES += draw_common.c g5.c
 include ../make/common.mk
 SOURCES += $(SOC_DIR)/wdt.c $(SOC_DIR)/timer.c $(SOC_DIR)/sleep.c 
 SOURCES += $(SOC_DIR)/adc.c $(SOC_DIR)/radio.c
-SOURCES += $(SOC_DIR)/soc.c $(SOC_DIR)/printf.c
+SOURCES += $(SOC_DIR)/soc.c $(SOC_DIR)/clock.c $(SOC_DIR)/printf.c
 SOURCES += board.c $(SCREEN_SRC)
 
 EEPROMDRV ?= eeprom.c

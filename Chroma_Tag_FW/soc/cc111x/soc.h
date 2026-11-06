@@ -10,8 +10,7 @@ void WOR_ISR(void) __interrupt (5);
 
 extern __bit gEEpromFailure;
 
-#pragma callee_saves clockingAndIntsInit
-void clockingAndIntsInit(void);
+#include "clock.h"
 
 #pragma callee_saves rndGen8
 uint8_t rndGen8(void);
