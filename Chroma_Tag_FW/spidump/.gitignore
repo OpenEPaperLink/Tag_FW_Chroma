@@ -1,0 +1,4 @@
+# images made by build.sh
+*.bin
+build/
+__pycache__/
