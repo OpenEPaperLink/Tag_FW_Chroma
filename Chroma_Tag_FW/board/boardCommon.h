@@ -9,6 +9,7 @@ extern uint8_t __xdata mSelfMac[];
 extern char __xdata gMacString[17];
 
 extern __xdata __at (0xfda2) uint8_t gTempBuf320[320];
+extern __bit gEPD_PowerSwitchable;
 
 /* SDCC 4.2 emits unused out-of-line copies of static inline functions.
  * Statement macros retain the SPI timing without those duplicate bodies. */

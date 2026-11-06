@@ -11,6 +11,8 @@
 #include "syncedproto.h"
 #include "logging.h"
 
+__bit gEPD_PowerSwitchable;
+
 // Port 0 pins
 // P0.0 out gpio        EPD BS1 
 // P0.1 in gpio         TP6/TP16
@@ -85,6 +87,40 @@ void PortInit()
 // Set default output value EEPROM CS high
    P2 = P2_EEPROM_nCS;
    P2DIR = P2_EEPROM_nCS;
+
+// On old versions of hardware the EPD power is not switched, but on newer 
+// versions P0_EPD_nENABLE is used to turn the EPD power off when the EPD
+// isn't being used.
+// 
+// Since the EPD RST_N pin is pulled up internally we can use it to
+// detect which version of the hardware we have.
+// P1_EPD_nRESET has been low for a while, change the pin to an input
+// and see if the EPD controller pulls it high.  
+// If it does then P0_EPD_nENABLE is NOT implemented otherwise it is.
+
+// Set P1_EPD_nRESET to input mode
+   P1DIR = P1_EPD_nCS0 | P1_EPD_SCK | P1_EPD_DI | P1_SERIAL_OUT;
+// Wait for RST_N to be pulled up by the display
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   __asm__("nop");
+   if(P1_2) {
+   // P1_EPD_nRESET is high so power is on, i.e. NOT controlled by P0_EPD_nENABLE
+      gEPD_PowerSwitchable = 0;
+   }
+   else {
+   // P1_EPD_nRESET is low so power is controlled by P0_EPD_nENABLE
+      gEPD_PowerSwitchable = 1;
+   }
+// Reset P1_EPD_nRESET to output mode
+   P1DIR = P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI | P1_SERIAL_OUT;
 }
 
 #ifdef DEBUG_CHIP_CFG

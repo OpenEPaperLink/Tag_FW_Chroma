@@ -368,6 +368,7 @@ void main()
    if((SLEEP & SLEEP_RST) == SLEEP_RST_WDT) {
       wakeUpReason = WAKEUP_REASON_WDT_RESET;
    }
+   LOGA("EPD PWR: %d\n",gEPD_PowerSwitchable);
 
    if(gEEpromFailure) {
       showNoEEPROM();
