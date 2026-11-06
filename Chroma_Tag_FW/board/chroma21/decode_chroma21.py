@@ -20,12 +20,10 @@ Layout found in JG10014896 (UC8154, "D18Y00010WY005_UC8154 21E4"):
 import sys
 
 BASE = 0x2000
-# LUT register each map slot loads (inferred, see the .md). By timing the
-# slots split into the two UC8154 stages (B/W: slots 0,2,4,5; red: 1,6,7).
-# W vs B follows from drive polarity: the Chroma29 driver's working LUTs
-# start black with VSH and end it with VSL, white the other way round.
-SLOT_GUESS = ['0x20 VCOM1', '0x25 VCOM2', '0x22 B', '0x23 G1 (unused)',
-              '0x24 G2', '0x21 W', '0x26 R0', '0x27 R1']
+# LUT register each map slot loads, from the stock firmware (see
+# docs/chroma21_waveform.md).  On this panel R21h drives black, R22h white.
+SLOT_NAMES = ['0x20 VCOM1', '0x25 VCOM2', '0x22 white', '0x23 G1 (unused)',
+              '0x24 G2', '0x21 black', '0x26 R0', '0x27 R1']
 
 # UC8154 PLL (R30h) = M << 3 | N, frame rate in Hz, from the datasheet
 PLL_HZ = {1: [20, 10, 7, 5, 4, 3, 3], 2: [39, 20, 13, 10, 8, 7, 6],
@@ -118,10 +116,10 @@ def main():
         print(f'\nblock {i} (>= {t} C):')
         for r, idx in enumerate(m):
             if idx == 0xff:
-                print(f'  slot {r} {SLOT_GUESS[r]:18} -- not loaded')
+                print(f'  slot {r} {SLOT_NAMES[r]:18} -- not loaded')
                 continue
             l = d[pool + idx * 15:pool + idx * 15 + 15]
-            print(f'  slot {r} {SLOT_GUESS[r]:18} pool[{idx:2d}] {l.hex(" ")}   {lut_str(l)}')
+            print(f'  slot {r} {SLOT_NAMES[r]:18} pool[{idx:2d}] {l.hex(" ")}   {lut_str(l)}')
 
 
 if __name__ == '__main__':

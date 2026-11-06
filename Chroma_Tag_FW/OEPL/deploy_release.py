@@ -13,6 +13,7 @@ builds={'chroma74y':{'hw_id' : '80','version' : 'version','md5': 'md5'}
     ,'chroma42':{'hw_id' : '83','version': 'version','md5': 'md5'}
     ,'chroma42_8176':{'hw_id' : '83','version': 'version_1','md5': 'md5_1'}
     ,'chroma60':{'hw_id' : '84','version': 'version','md5': 'md5'}
+    ,'chroma21':{'hw_id' : '85','version': 'version','md5': 'md5'}
 }
 
 parser = argparse.ArgumentParser(

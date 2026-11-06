@@ -25,6 +25,8 @@ static const uint8_t __code debugbuild[] = {
 
 #ifndef LEAN_VERSION
 
+// Side logo (OpenEPaperLink banner between two clouds)
+#if DISPLAY_HEIGHT >= 128
 static const uint8_t __code oepli[] = {
    128, 26,
    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
@@ -86,6 +88,11 @@ static const uint8_t __code CloudBottom[] = {
    0x00, 0x00, 0xa1, 0x52, 0xa6, 0xef, 0xef, 0xff, 0xff, 0xff, 0xd6, 0xca, 0xf5, 0x10, 0x18, 0x00, 
    0x00, 0x00, 0x02, 0x15, 0x4b, 0xd5, 0xdf, 0xff, 0xff, 0xf7, 0xeb, 0xd4, 0xd8, 0x85, 0x00, 0x00, 
 };
+
+#else
+// scaled down by tools/gen_small_logo.py
+#include "bitmaps_small.h"
+#endif
 
 static const uint8_t __code receive[] = {
    56, 56, 
@@ -201,7 +208,8 @@ static const uint8_t __code failed[] = {
 };
 #endif
 
-#if (SCREEN_WIDTH != 128) 
+// rotated icons for the Chroma29 and Chroma21 layout
+#if (SCREEN_WIDTH != 128) && !defined(CHROMA21)
 static const uint8_t __code ant[] = {
    16, 16,
    0x00, 0x40, 
@@ -255,7 +263,8 @@ static const uint8_t __code cross[] = {
    0x63
 };
 
-#if (SCREEN_WIDTH != 128) 
+// rotated icons for the Chroma29 and Chroma21 layout
+#if (SCREEN_WIDTH != 128) && !defined(CHROMA21)
 static const uint8_t __code battery[] = {
    16,10,
    0x00, 0x00, 

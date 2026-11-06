@@ -2,8 +2,8 @@
 #include <stdarg.h>
 
 #include "drawing.h"
+#include "screen.h"        // first: it may define TEXT_WIDTH
 #include "draw_common.h"
-#include "screen.h"
 #include "printf.h"
 #include "settings.h"
 #include "logging.h"
@@ -58,7 +58,7 @@ void epdpr(const char __code *fmt, ...) __reentrant
     // Center line horizontally
        gCharX = 0;
        prvPrintFormat(CalcLineWidth,0,fmt,vl);
-       gCharX = (DISPLAY_WIDTH - gCharX) / 2;
+       gCharX = (TEXT_WIDTH - gCharX) / 2;
     }
     prvPrintFormat(epdPutchar,0,fmt,vl);
     va_end(vl);

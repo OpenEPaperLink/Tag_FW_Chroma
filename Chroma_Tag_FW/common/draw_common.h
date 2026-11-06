@@ -4,6 +4,12 @@
 
 typedef void (*StrFormatOutputFunc)(uint32_t param /* low byte is data, bits 24..31 is char */) __reentrant;
 
+// Width \f centers text in.  A board with a side logo can define it in
+// screen.h (included first) to leave room for the logo.
+#ifndef TEXT_WIDTH
+#define TEXT_WIDTH   DISPLAY_WIDTH
+#endif
+
 extern const uint16_t __code gFontIndexTbl[96];
 extern const uint16_t __code gPackedData[];
 
