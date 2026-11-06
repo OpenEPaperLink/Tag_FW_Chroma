@@ -14,13 +14,15 @@ jobs:
           submodules: true
       - run: python3 tests/packed_g5/run_tests.py --sanitize
       - run: python3 tests/packed_g5/test_storage.py
+      - run: python3 Chroma_Tag_FW/test/uc8154/run_tests.py
+      - run: python3 Chroma_Tag_FW/test/spidump/run_tests.py
 
   firmware:
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        build: [chroma29, chroma29_8151, chroma42, chroma42_8176, chroma60, chroma74r, chroma74y]
+        build: [chroma21, chroma29, chroma29_8151, chroma42, chroma42_8176, chroma60, chroma74r, chroma74y]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,6 +40,10 @@ jobs:
           # Inject the new binaries directly into the GitHub Runner environment PATH
           echo "$HOME/sdcc/bin" >> $GITHUB_PATH
       - run: make -C Chroma_Tag_FW/OEPL BUILD=${{ matrix.build }}
+      - if: matrix.build == 'chroma21'
+        run: |
+          bash Chroma_Tag_FW/spidump/build.sh
+          bash Chroma_Tag_FW/spidump/build.sh --screen chroma21
       - name: Check flash and legacy OTA payload limit
         env:
           BUILD: ${{ matrix.build }}
