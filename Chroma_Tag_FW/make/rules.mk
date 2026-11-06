@@ -1,5 +1,9 @@
 BUILD_DIR?=$(BUILDS_DIR)/build
 
+# A failed link leaves a main.ihx with unresolved calls to address 0 (a reset),
+# without this the next make would turn it into a firmware image.
+.DELETE_ON_ERROR:
+
 HDR_TOOL_DIR=$(FIRMWARE_ROOT)/add_ota_hdr
 HDR_TOOL_BUILD_DIR=$(HDR_TOOL_DIR)/build
 HDR_TOOL=$(HDR_TOOL_BUILD_DIR)/add_ota_hdr

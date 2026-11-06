@@ -12,7 +12,7 @@ For more info see the main projects [Wiki](https://github.com/OpenEPaperLink/Ope
 There is no need to build the tag firmware from source unless you want to 
 make changes.
 
-Currently the following tags are supported and support for the Chroma21 is planned:
+Currently the following tags are supported (Chroma21 support is a work in progress):
 
 | Tag | SN Format | BUILD | Binary filename | 
 | - |-| -| -|
@@ -23,6 +23,7 @@ Currently the following tags are supported and support for the Chroma21 is plann
 | Chroma74 | "JM1xxxxxxxB" | chroma74y | chroma74y_full_\<version\>.bin |
 | Chroma74 | "JL1xxxxxxxB" | chroma74r | chroma74r_full_\<version\>.bin |
 | Chroma60 | "JDxxxxxxxxx" | chroma60 | chroma60_full_\<version\>.bin |
+| Chroma21 (WIP) | "JG1xxxxxxxB" | chroma21 | chroma21_full_\<version\>.bin |
 
 Where \<version\> is the 4 digit firmware version in hex for example "chroma29_8151_full_0012.bin"
 
@@ -35,6 +36,12 @@ Refer the table above for the correct filename.
 
 Version `0x0016` adds packed-row G5 image decompression while retaining raw image support. See [G5 file handling, AP configuration and validation](docs/g5.md) before enabling compressed images or publishing new binaries.
  
+## Backing up a tag
+
+The SPI flash holds the tag's serial number, calibration and display waveforms,
+which can't be recreated. [spidump](docs/spidump.md) backs up the firmware and
+dumps the SPI flash using only the debug connection.
+
 ## Building from Source
  
 **NB:** While it may be possible to use Windows for development I haven't 
