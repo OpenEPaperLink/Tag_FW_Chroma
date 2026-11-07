@@ -48,7 +48,7 @@ Image slots: 13
 | Start Adr | End Adr  | Size | Usage |
 |     -     |    -     |   -  |   -   |
 | 0x0.0000  | 0x0.1fff |   8k | Factory NVRAM
-| 0x0.2000  | 0x0.5fff |  16k | Factory LUT ???
+| 0x0.2000  | 0x0.5fff |  16k | Factory waveform script, see docs/chroma60_waveform.md
 | 0x0.6000  | 0x0.bfff |  24k | unused ???
 | 0x0.c000  | 0x0.cfff |   4k | OEPL Settings
 | 0x0.d000  | 0x0.dfff |   4k | OEPL NVRAM
@@ -62,6 +62,10 @@ Image slots: 13
 */
 #define EEPROM_FACTORY_NVRAM_ADR       (0x00000UL)
 #define EEPROM_FACTORY_NVRAM_LEN       (EEPROM_ERZ_SECTOR_SZ * 2)
+
+// Factory waveform script ("P17D01.06 V3 UC8159 60E4"), read at run time
+// for the per-temperature LUTs.  See screen.c.
+#define EEPROM_FACTORY_WAVEFORM_ADR    (0x02000UL)
 
 #define EEPROM_SETTINGS_AREA_START     (0x0c000UL)
 #define EEPROM_SETTINGS_AREA_LEN       (EEPROM_ERZ_SECTOR_SZ)
