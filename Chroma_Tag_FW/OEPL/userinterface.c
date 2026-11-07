@@ -32,6 +32,7 @@ void DrawFwVer(void);
 void SetDrawingDefaults(void);
 void DisplayLogo(void);
 void DisplayLowestVbat(void);
+void DisplayEnableAndLut(void);
 
 static const char __code gNewLine[] = "\n";
 static const char __code gDoubleSpace[] = "\n\n";
@@ -182,7 +183,8 @@ void DrawSplashScreen()
    epdpr("Starting . . .\n");
    DrawFwVer();
    epdpr("\nVBat: %d mV\n",gBootBattV);
-   epdpr("Temp: %dC\n\n",gTemperature);
+   epdpr("Temp: %dC\n",gTemperature);
+   DisplayEnableAndLut();
    DrawTagMac();
 #else
 #if DISPLAY_WIDTH <= 296
@@ -196,7 +198,8 @@ void DrawSplashScreen()
 #endif
    DrawFwVer();
    epdpr("\nVBat: %d mV\n",gBootBattV);
-   epdpr("Temperature: %dC\n\n",gTemperature);
+   epdpr("Temperature: %dC\n",gTemperature);
+   DisplayEnableAndLut();
    DrawTagMac();
 
 #ifndef DISABLE_BARCODES
@@ -276,14 +279,11 @@ void DrawAPFound()
    DisplayLogo();
 #if DISPLAY_WIDTH > 296
    epdpr("\f\t\bWaiting for data . . .\n\b");
-#elif defined(UI_SMALL)
-   gCharY = 4;
-   epdpr("Waiting for data . . .\n\n");
 #else
    epdpr("Waiting for data . . .\n");
 #endif
+
 #ifdef UI_SMALL
-   gBmpY = gCharY;
    epdpr("AP %02X%02X",APmac[7],APmac[6]);
 #else
    epdpr("\nFound the following AP:");
@@ -309,17 +309,20 @@ void DrawAPFound()
 // 2.9" or smaller
 // Don't have room for all three battery readings, display the lowest
    DisplayLowestVbat();
+   DisplayEnableAndLut();
    DrawFwVer();
 #else
 // wider than 2.9"
 #if DISPLAY_WIDTH >= 640
 // 7.4" or wider
-   epdpr("\nVBat: %d mV, Txing: %d mV, Displaying: %d mV\n\n",
+   epdpr("\nVBat: %d mV, Txing: %d mV, Displaying: %d mV\n",
          gBattV,gTxBattV,gRefreshBattV);
+   DisplayEnableAndLut();
 #else
 // between 2.9" and 7.4"
-   epdpr("\nVBat: %d mV, Txing: %d mV\nDisplaying: %d mV\n\n",
+   epdpr("\nVBat: %d mV, Txing: %d mV\nDisplaying: %d mV\n",
          gBattV,gTxBattV,gRefreshBattV);
+   DisplayEnableAndLut();
 #endif
    DrawFwVer();
    epdpr(gDoubleSpace);
@@ -523,4 +526,25 @@ void DisplayLowestVbat()
    epdpr("VBat: %d mV\n",gRefreshBattV != 0 && gRefreshBattV < gTxBattV ? 
          gRefreshBattV:gTxBattV);
 }
+
+void DisplayEnableAndLut()
+{
+   epdpr("EpdPwr %d, ",gEPD_PowerSwitchable);
+   eepromRead(EEPROM_FACTORY_WAVEFORM_ADR,gTempBuf320,sizeof(gTempBuf320));
+
+   if(gTempBuf320[0] == gWfMagic[0] 
+      && gTempBuf320[1] == gWfMagic[1]
+      && gTempBuf320[2] == gWfMagic[2]
+      && gTempBuf320[3] == gWfMagic[3])
+   {
+      epdpr("LUT v%d.%d\n",gTempBuf320[4],gTempBuf320[5]);
+   }
+   else {
+      epdpr("NO LUT\n");
+   // Dump unknown / invalid LUT for debugging
+      LOGA("LUT:\n");
+      DumpHex(gTempBuf320,sizeof(gTempBuf320));
+   }
+}
+
 #endif

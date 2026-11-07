@@ -100,7 +100,7 @@ static __xdata uint8_t gWf[WF_SIZE];
 static __xdata uint8_t gWfMap[8];
 static __xdata uint16_t gWfPool;
 
-static const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe,0x04,0x02};
+const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe,0x04,0x02};
 
 #ifndef UC8154_NO_DEFAULT_WAVEFORM
 // Used when the SPI flash doesn't have the factory waveform tables.

@@ -64,6 +64,7 @@ the right half.
 #define CMD_FORCE_TEMPERATURE 0xE5
 
 uint8_t __xdata mScreenVcom;
+const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe};
 
 
 __xdata __at (0xfda2) uint8_t gTempBuf320[320];  //350 bytes here, we use 320 of them

@@ -14,10 +14,15 @@ extern __bit gWinColor;
 extern __bit gLargeFont;
 extern __bit gDirectionY;
 extern __bit gCenterLine;
+
+// Screen address where characters will be drawn
 extern __xdata int16_t gCharX;
 extern __xdata int16_t gCharY;
+
+// Screen address where bitmap will be drawn
 extern __xdata int16_t gBmpX;
 extern __xdata int16_t gBmpY;
+
 extern __xdata int16_t gLeftMargin;
 extern __xdata int8_t gCharWidth;
 extern __xdata int8_t gCharHeight;
