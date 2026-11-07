@@ -20,6 +20,10 @@
 #endif
 #define BWR
 
+#ifndef DISABLE_BARCODES
+#define DISABLE_BARCODES   // frees about 1 KB of flash
+#endif
+
 extern const char * __code gBoardName;
 extern const uint8_t __code gDefaultEEPROM[];
 
