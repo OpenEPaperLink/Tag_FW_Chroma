@@ -1,6 +1,6 @@
-# Chroma60 factory waveform tables (format 03 03)
+# Chroma60 factory waveform tables (formats 03 03 and 02 03)
 
-Decoded from the SPI flash of JD (BWR) and JJ (BWY) Chroma60 tags with a UC8159 controller and a 600×448 panel. The waveform (0x2000–0x55C6) is byte-identical on all three tags dumped, including the BWR and BWY ones, so both colours use the same LUTs.
+Decoded from the SPI flash of four Chroma60 tags with a UC8159 controller and a 600×448 panel. Three of them, JD (BWR) and JJ (BWY), have format 3.3, and their waveforms (0x2000–0x55C6) are byte-identical, so both colours use the same LUTs. The fourth, an older JD tag, has format 2.3, which is described in [Format 2.3](#format-23). Everything else in this document is about format 3.3.
 
 Unlike the Chroma21's table format ([chroma21_waveform.md](chroma21_waveform.md)), this is a small **script** that the stock firmware interprets. The interpreter is at 0x205B in the stock CC1110 image (MD5 `860a7a49…`), and all firmware addresses below refer to that image. `Chroma_Tag_FW/board/chroma60/decode_factory.py dump.bin [block]` prints the NVRAM, the per-temperature settings and one block's LUTs.
 
@@ -15,7 +15,7 @@ Register meanings come from the UltraChip UC8159 datasheet (version c_B, revisio
 | Address | Size | Contents | |
 |---|---|---|---|
 | 0x2000 | 4 | Magic `ce fa ef be` (0xBEEFFACE, little endian) | ✅ |
-| 0x2004 | 2 | Format version `03 03`; the firmware checks both bytes | ✅ |
+| 0x2004 | 2 | Format version `03 03` (`02 03` in format 2.3); the firmware checks both bytes | ✅ |
 | 0x2006 | 27 | Name, NUL padded: `P17D01.06 V3 UC8159 60E4` | ✅ |
 | 0x2021 | 4 | `00 00 00 00` | ❓ |
 | 0x2025 | 2 | Payload length, `0x359D` | ✅ |
@@ -345,16 +345,63 @@ The stock firmware does this at boot, so a normal refresh doesn't repeat the 5 s
 
 The NVRAM may be in sector 0 or sector 1, because the stock firmware moves it between them.
 
+## Format 2.3
+
+An older JD tag (JD00000725) has format `02 03`, named `8159v2EPD P15D02.00 UC 60E4`. It's the same script format as 3.3: the header fields, the record types and the init and refresh scripts are the same, and every block has the same six records in the same order. These differ:
+
+| | 3.3 | 2.3 |
+|---|---|---|
+| Version at 0x2004 | `03 03` | `02 03` |
+| Payload length, checksum | `0x359D`, `0xE3` | `0x1C65`, `0xE4`. The data ends at 0x3C8E; 0x3C8F is the first erased byte. |
+| Init, refresh, VCOM-measure scripts | 0x2048, 0x2097, 0x20BA | 0x204B, 0x209A, 0x20BD |
+| 0x203B | `01` | `00` |
+| VCOM-measure script | Starts with a wait (type `07`); PWR `07 01 04 3c` | No wait; PWR `07 01 06 3c` |
+| Temperature table | 0x20E1, 13 entries and the end marker | 0x20E1, 7 entries and the end marker |
+| Blocks | 13 × 1032 bytes from 0x215F | 7 × 1002 bytes from 0x2129 |
+| Colour LUT records | 260 bytes | 250 bytes: the same 20 rows of 13 bytes without the last 10, which are zero in both formats |
+
+The checksum rule is the same, and holds for this dump.
+
+The blocks ✅ (times calculated as for 3.3 ⚠️):
+
+| # | ≥ °C | Address | PWR byte 3 | VSH_LV | PLL | Rate | Frames | Time |
+|---|---|---|---|---:|---|---|---:|---:|
+| 0 | 35 | 0x2129 | `06` | 4.2 V | `3a` | 100 Hz | 758 | 8 s |
+| 1 | 30 | 0x2513 | `06` | 4.2 V | `3a` | 100 Hz | 1018 | 10 s |
+| 2 | 20 | 0x28FD | `06` | 4.2 V | `3a` | 100 Hz | 1443 | 14 s |
+| 3 | 15 | 0x2CE7 | `07` | 4.4 V | `3a` | 100 Hz | 1586 | 16 s |
+| 4 | 10 | 0x30D1 | `0a` | 5.0 V | `3a` | 100 Hz | 1830 | 18 s |
+| 5 | 3 | 0x34BB | `10` | 6.2 V | `3a` | 100 Hz | 2042 | 20 s |
+| 6 | −5 | 0x38A5 | `18` | 7.8 V | `3c` | 50 Hz | 1264 | 25 s |
+
+As in 3.3, all four LUTs in a block share the same step timing and only the first 8 rows are used. Unlike 3.3, no two blocks have the same LUTs.
+
+The waveforms are not a subset of 3.3's. At 20 °C (block 2), using the symbols of [The waveform at 20 °C](#the-waveform-at-20-c):
+
+| Step | Repeat | Frames | VCOM | Black | White | Red/yellow |
+|---|---:|---|---|---|---|---|
+| 1 | 1 | 10/11 | `0 0` | `0 0` | `0 0` | `− −` |
+| 2 | 25 | 3/4 | `0 0` | `0 −` | `+ 0` | `0 −` |
+| 3 | 25 | 10/10 | `0 0` | `− +` | `− +` | `− +` |
+| 4 | 25 | 3/4 | `0 0` | `0 +` | `− 0` | `0 0` |
+| 5 | 1 | 1/1 | `0 0` | `0 0` | `0 0` | `0 0` |
+| 6 | 1 | 1/1 | `0 0` | `0 0` | `0 0` | `0 0` |
+| 7 | 6 | 5/53 | `0 0` | `0 0` | `0 0` | `− L` |
+| 8 | 2 | 55/55 | `0 0` | `0 0` | `0 0` | `L L` |
+
+There is no long pre-drive step. Instead, step 2 drives black and white the opposite way to step 4, before the shaking ⚠️. The same LUT registers hold the same colours as in 3.3 (R21h black, R22h white, R25h red), so OEPL's register remap applies unchanged.
+
 ## Compared with the OEPL driver
 
 `Chroma_Tag_FW/board/chroma60/screen.c` reads the block for the current temperature from SPI flash at run time. It differs from the stock sequence in these ways:
 
 | | Stock | OEPL |
 |---|---|---|
+| Formats | Each stock image checks for its own version | Accepts 3.3 and 2.3 |
 | Order | Init, block, image, PON, DRF | BTST, PWR, PON, then the rest of the setup, the LUTs, the image, DRF |
 | White / red LUT registers | R22h / R25h, codes `011` / `100` | R27h / R28h, codes `110` / `111` |
 | Below −5 °C | Refuses to refresh | Uses the −5 °C block |
-| No waveform in flash | Refuses to refresh | Also refuses: the LUTs would be empty, and a compiled-in 20 °C fallback doesn't fit in flash |
+| No waveform in flash | Refuses to refresh | Also refuses: there's no compiled-in fallback, so the LUTs would be empty |
 | PFS, TCON, TSE | Sent | Left at their reset values |
 | Border | VBD = 011: the White LUT in R22h | VBD = 110 (`0xd7`): R27h, which holds the same LUT |
 
@@ -374,6 +421,7 @@ The problem being tested is that thin vertical features render grey, while horiz
 Not tested yet:
 - The blocks below about 5 °C.
 - Yellow rendering on the JJ tag with this waveform.
+- Format 2.3. It has only been checked on a host harness against the JD00000725 dump.
 
 ## Open questions
 
@@ -381,3 +429,4 @@ Not tested yet:
 2. BTST strength 001, which the datasheet calls reserved.
 3. 0x2021, 0x2029 and 0x203B.
 4. Real refresh times. The figures above are calculated.
+5. Which tags have which format, and whether there are others. It doesn't follow the serial number range: JD00000725 has 2.3, but JD00006303 has 3.3.

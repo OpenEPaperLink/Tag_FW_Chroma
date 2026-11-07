@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Decode the factory data in a Chroma60 SPI flash dump.
 
-The LUTs in screen.c were taken from the 20C block this prints.
+screen.c reads the same blocks at run time.  See docs/chroma60_waveform.md.
 
 usage: decode_factory.py dump.bin [temperature block index]
 
 Prints the live factory NVRAM settings (0x0000), the waveform script's
-temperature table (0x2000) and the LUTs of one temperature block.
+temperature table (0x2000) and the LUTs of one temperature block.  Handles
+waveform formats 3.3 (13 blocks) and 2.3 (7 blocks).
 """
 import sys
 
 MAGIC = bytes([0x56, 0x12, 0x09, 0x85])
 SCRIPT_BASE = 0x202a     # temperature table offsets are relative to this
-TEMP_TABLE = 0x20e1      # 9 byte entries: temp (int8), offset (u16 LE), 6 x 0
-TEMP_ENTRIES = 14        # the last entry (-100C) only marks the end
+TEMP_TABLE = 0x20e1      # 9 byte entries: temp (int8), offset (u32 LE), 4 x 0
+TEMP_END = -100          # an entry at or below this only marks the end
+MAX_ENTRIES = 20
 
 
 def nvram(d):
@@ -64,13 +66,21 @@ def main():
     for t, v in sorted(nvram(d).items()):
         print(f"  type 0x{t:02x}: {v.hex(' ')}")
 
-    print("\nWaveform script:", d[0x2006:0x201e].decode('ascii', 'replace'))
+    name = d[0x2006:0x2021].split(b'\0')[0].decode('ascii', 'replace')
+    print(f"\nWaveform script, format {d[0x2004]}.{d[0x2005]}: {name}")
+    # The end marker's offset is the end of the last block
     ents = []
-    for i in range(TEMP_ENTRIES):
+    for i in range(MAX_ENTRIES):
         e = d[TEMP_TABLE + i * 9:TEMP_TABLE + i * 9 + 9]
         temp = e[0] - 256 if e[0] > 127 else e[0]
-        ents.append((temp, SCRIPT_BASE + (e[1] | e[2] << 8)))
-    for i in range(TEMP_ENTRIES - 1):
+        ents.append((temp, SCRIPT_BASE + int.from_bytes(e[1:5], 'little')))
+        if temp <= TEMP_END:
+            break
+    else:
+        sys.exit("no end marker in the temperature table")
+    if not 0 <= blk < len(ents) - 1:
+        sys.exit(f"block must be 0 to {len(ents) - 2}")
+    for i in range(len(ents) - 1):
         cmds = script(d, ents[i][1], ents[i + 1][1])
         small = ' '.join(f"{c:02x}:{v.hex()}" for c, v in cmds if v is not None and len(v) < 8)
         print(f"  block {i:2d} >= {ents[i][0]:3d}C @0x{ents[i][1]:05x}  {small}")

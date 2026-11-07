@@ -111,9 +111,10 @@ __bit gScreenPowered = false;
 #define LUT_CMD_111  0x28
 
 // The power setting, PLL and LUTs come from the factory waveform script in
-// SPI flash (0x2000 - 0x55c7, "P17D01.06 V3 UC8159 60E4").  The script holds
-// one block per temperature; LoadWaveformBlock() picks the block for the
-// current temperature and SendFlashCmd() streams each piece out of it.  The
+// SPI flash at 0x2000: format 3.3 ("P17D01.06 V3 UC8159 60E4") or the older
+// format 2.3 ("8159v2EPD P15D02.00 UC 60E4").  The script holds one block per
+// temperature; LoadWaveformBlock() picks the block for the current
+// temperature and SendFlashCmd() streams each piece out of it.  The
 // gPwrSettingEpd and gPllEpd tables below are the 20 C values, used only as a
 // fallback when the factory tables aren't present (see screenInitIfNeeded).
 static const uint8_t __code gBoosterEpd[] = {
@@ -213,12 +214,16 @@ void SendEpdTbl(uint8_t const __code *pData)
 //   01 <len16 LE> <cmd> <data...>   send <cmd> with the data (len = 1 + data)
 //   04 <len16 LE> <cmd>             send <cmd> with (len - 1) zero bytes
 //   <xx> <yy> <zz>                  a 3-byte wait (anything not 01 / 04)
-// It opens with a header (magic gWfMagic) and a temperature table at
-// WF_TEMP_TABLE: 9-byte entries, warmest first, each giving a temperature and
-// the offset (relative to WF_SCRIPT_BASE) of that temperature's block,
-// terminated by a <= WF_TEMP_END sentinel.  Each block holds the power setting
-// (01h), PLL (30h) and the VCOM (20h) and colour (22h/21h/25h) LUTs for that
-// temperature.
+// It opens with a header (magic gWfMagic, which ends with the format version)
+// and a temperature table at WF_TEMP_TABLE: 9-byte entries, warmest first,
+// each giving a temperature and the offset (relative to WF_SCRIPT_BASE) of
+// that temperature's block, terminated by a <= WF_TEMP_END sentinel.  Each
+// block holds the power setting (01h), PLL (30h) and the VCOM (20h) and
+// colour (22h/21h/25h) LUTs for that temperature.
+//
+// Format 2.3 has 7 blocks instead of 13, and stores the colour LUTs without
+// their last 10 bytes, which are zero.  The driver reads both the table and
+// the record lengths from the script, and SendFlashCmd() zero-fills.
 //
 // The factory puts the colour LUTs on registers 20/22/21/25; OEPL's drawing.c
 // encodes pixels as 000/110/111, so the factory 22h/25h LUT *contents* are
@@ -244,7 +249,8 @@ static void LoadWaveformBlock(int8_t Temperature)
    gWfBlock = 0;
    eepromRead(EEPROM_FACTORY_WAVEFORM_ADR,gTempBuf320,sizeof(gWfMagic));
    for(i = 0; i < sizeof(gWfMagic); i++) {
-      if(gTempBuf320[i] != gWfMagic[i]) {
+   // Format 3.3 (03 03), or 2.3 (02 03)
+      if(gTempBuf320[i] != gWfMagic[i] && !(i == 4 && gTempBuf320[i] == 0x02)) {
          gWfInFlash = false;
          return;
       }
@@ -464,9 +470,8 @@ void drawWithSleep()
    uint16_t Lowest = 0xffff;
 
 // Without the factory script the LUTs are empty, so a refresh would change
-// nothing and only drain the battery.  The stock firmware refuses too.  A
-// compiled-in 20C fallback isn't an option: even compacted it takes about
-// 400 bytes, more than the image has free.
+// nothing and only drain the battery.  The stock firmware refuses too.
+// There's no compiled-in fallback LUT.
    if(!gWfInFlash) {
       einkDeselect();
       screenShutdown();
