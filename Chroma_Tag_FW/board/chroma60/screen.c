@@ -234,7 +234,7 @@ void SendEpdTbl(uint8_t const __code *pData)
 #define WF_TEMP_END      (-100)  // sentinel temperature ending the table
 #define WF_MAX_TEMPS     20      // sanity cap on the table scan
 
-static const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe,0x03,0x03};
+static const uint8_t __code gWfMagic[320] = {0xce,0xfa,0xef,0xbe,0x03,0x03};
 static __bit gWfInFlash;
 static __xdata uint16_t gWfBlock;   // offset of the chosen temperature block
 static __xdata uint8_t gWfRec[4];   // a record header being scanned
