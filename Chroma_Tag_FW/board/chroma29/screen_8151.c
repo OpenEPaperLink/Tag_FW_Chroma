@@ -11,6 +11,8 @@
 #include "settings.h"
 #include "logging.h"
 
+const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe};
+
 // uc8151D like commands
 #define CMD_PANEL_SETTING 0x00
 #define CMD_POWER_SETTING 0x01

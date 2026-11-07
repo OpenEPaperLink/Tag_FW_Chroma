@@ -74,6 +74,7 @@ The commands were found to match the UC8176c fairly closely.
 
 uint8_t __xdata mScreenVcom;
 uint8_t __xdata gSentTxCount;
+const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe};
 
 
 __xdata __at (0xfda2) uint8_t gTempBuf320[320];  //350 bytes here, we use 320 of them

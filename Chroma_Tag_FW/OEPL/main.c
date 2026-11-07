@@ -420,6 +420,7 @@ void main()
       TagChanSearch();
    }
 
+   powerUp(INIT_EEPROM);
    if(gCurrentChannel) {
       showAPFound();
       gTagAssociated = true;
@@ -435,9 +436,10 @@ void main()
 // to give the user the ability to clear flash by removing the batteries 
 // during  the first screen refresh.
 
-   powerUp(INIT_EEPROM);
    writeSettings();
 #endif
+   powerDown(INIT_EEPROM);
+
    initPowerSaving(gTagAssociated ? INTERVAL_BASE : INTERVAL_AT_MAX_ATTEMPTS);
    doSleep(gTagAssociated ? 5000UL : 120000UL);
 

@@ -248,7 +248,7 @@ void DrawScreen(DrawingFunction DrawIt)
    drawWithSleep();
 }
 
-// x,y where to put bmp.  (x must be a multiple of 8)
+// gBmpX,gBmpY where to put bmp.  (gBmpX must be a multiple of 8)
 // bmp[0] =  bmp width in pixels (must be a multiple of 8)
 // bmp[1] =  bmp height in pixels
 // bmp[2...] = pixel data 1BBP
