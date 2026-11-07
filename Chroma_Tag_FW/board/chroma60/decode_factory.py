@@ -64,7 +64,7 @@ def main():
     for t, v in sorted(nvram(d).items()):
         print(f"  type 0x{t:02x}: {v.hex(' ')}")
 
-    print("\nWaveform script:", d[0x2006:0x201e].decode('ascii', 'replace'))
+    print(f'\nWaveform script: {d[0x2006:0x201e].decode('ascii', 'replace')} (v{d[0x2004]:x}.{d[0x2005]:x})')
     ents = []
     for i in range(TEMP_ENTRIES):
         e = d[TEMP_TABLE + i * 9:TEMP_TABLE + i * 9 + 9]
