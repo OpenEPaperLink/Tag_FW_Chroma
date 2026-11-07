@@ -110,17 +110,27 @@ __bit gScreenPowered = false;
 #define LUT_CMD_110  0x27
 #define LUT_CMD_111  0x28
 
-// LUTs from the factory waveform script in SPI flash (0x2000 - 0x55c7,
-// "P17D01.06 V3 UC8159 60E4").  The script holds 13 temperature blocks,
-// these are from the 20C - 24C block.  Chroma60 is BWR only.
-// TODO(chroma60): select the block for the current temperature
-static const uint8_t __code gPwrUpEpd[] = {
+// The power setting, PLL and LUTs come from the factory waveform script in
+// SPI flash (0x2000 - 0x55c7, "P17D01.06 V3 UC8159 60E4").  The script holds
+// one block per temperature; LoadWaveformBlock() picks the block for the
+// current temperature and SendFlashCmd() streams each piece out of it.  The
+// gPwrSettingEpd and gPllEpd tables below are the 20 C values, used only as a
+// fallback when the factory tables aren't present (see screenInitIfNeeded).
+static const uint8_t __code gBoosterEpd[] = {
    4,CMD_BOOSTER_SOFT_START,
-   0x0e,0xcd,0x26,
+   0x0e,0xcd,0x26,     // not per-temperature, not in the script blocks
 
+   0
+};
+
+static const uint8_t __code gPwrSettingEpd[] = {
    5,CMD_POWER_SETTING,
    0x07,0x01,0x07,0x3c,   // VDHR 0x07 per the 20C factory block
 
+   0
+};
+
+static const uint8_t __code gPowerOnEpd[] = {
    1,CMD_POWER_ON,
 
    0
@@ -133,9 +143,6 @@ static const uint8_t __code gSetupEpd[] = {
    3,CMD_PANEL_SETTING,
    0xef,0x80,
 
-   2,CMD_PLL_CONTROL,
-   0x3a,
-
    5,CMD_RESOLUTION_SETTING,
    SCREEN_WIDTH >> 8,SCREEN_WIDTH & 0xff,SCREEN_HEIGHT >> 8,
    SCREEN_HEIGHT & 0xff,
@@ -143,170 +150,17 @@ static const uint8_t __code gSetupEpd[] = {
    0
 };
 
-static const uint8_t __code  lut20[] = {
-// LUT_VCOM (0x20), 82 of 220 bytes, the rest are zero
-   0x01,
-   0x00,0x00,
-   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
+static const uint8_t __code gPllEpd[] = {
+   2,CMD_PLL_CONTROL,
+   0x3a,   // 20C block; per-temperature value comes from the script
 
-   0x04,
-   0x00,0x00,
-   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0c,
-   0x00,0x00,
-   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0f,
-   0x00,0x00,
-   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x08,
-   0x00,0x00,
-   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x00,0x00,
-   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x02,
-   0x00,0x00,
-   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x03,
-   0x00,0x00,
-   0x04,0x06
+   0
 };
 
-static const uint8_t __code  lut22[] = {
-// LUT_W (0x22), 98 of 260 bytes, the rest are zero
-   0x01,
-   0x00,0x01,0x00,0x00,
-   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x21,0x00,0x00,0x00,
-   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0c,
-   0x21,0x00,0x00,0x00,
-   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0f,
-   0x20,0x00,0x00,0x00,
-   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x08,
-   0x00,0x00,0x00,0x00,
-   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x00,0x00,0x00,0x00,
-   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x02,
-   0x00,0x00,0x00,0x00,
-   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x03,
-   0x20,0x00,0x00,0x00,
-   0x04,0x06
-};
-
-static const uint8_t __code  lut21[] = {
-// LUT_B (0x21), 98 of 260 bytes, the rest are zero
-   0x01,
-   0x00,0x22,0x00,0x00,
-   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x21,0x00,0x00,0x00,
-   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0c,
-   0x21,0x00,0x00,0x00,
-   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0f,
-   0x01,0x00,0x00,0x00,
-   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x08,
-   0x00,0x00,0x00,0x00,
-   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x00,0x00,0x00,0x00,
-   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x02,
-   0x00,0x00,0x00,0x00,
-   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x03,
-   0x01,0x00,0x00,0x00,
-   0x04,0x06
-};
-
-static const uint8_t __code  lut25[] = {
-// LUT_R0 (0x25), 98 of 260 bytes, the rest are zero
-   0x01,
-   0x22,0x22,0x00,0x00,
-   0x37,0x64,0x24,0x48,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x21,0x00,0x00,0x00,
-   0x55,0x55,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0c,
-   0x21,0x00,0x00,0x00,
-   0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x0f,
-   0x01,0x00,0x00,0x00,
-   0x04,0x06,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x08,
-   0x23,0x00,0x00,0x00,
-   0x05,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x04,
-   0x23,0x00,0x00,0x00,
-   0x04,0x2d,0x0f,0x00,0x00,0x00,0x00,0x00,
-
-   0x02,
-   0x33,0x00,0x00,0x00,
-   0x3c,0x3c,0x00,0x00,0x00,0x00,0x00,0x00,
-
-   0x03,
-   0x00,0x00,0x00,0x00,
-   0x04,0x06
-};
-
-_Static_assert(sizeof(lut20) <= 255 && sizeof(lut21) <= 255 &&
-               sizeof(lut22) <= 255 && sizeof(lut25) <= 255,
-               "stored LUT length must fit its byte-sized descriptor");
-
-struct Atc1441Luts {
-   uint8_t Cmd;
-   const uint8_t __code *Lut;
-   uint8_t LutLen;
-};
-
-/* Stored tables omit their zero tails; controller transfer lengths stay 16-bit. */
-static const struct Atc1441Luts __code gLuts[] = {
-   {0x20,lut20,sizeof(lut20)},         // Vcom
-   {0x29,NULL,0},                      // Xon, all zero per factory script
-   {LUT_CMD_000,lut21,sizeof(lut21)},  // black
-   {LUT_CMD_001,NULL,0},               // not used
-   {LUT_CMD_010,NULL,0},               // not used
-   {LUT_CMD_011,NULL,0},               // not used
-   {LUT_CMD_100,NULL,0},               // not used
-   {LUT_CMD_101,NULL,0},               // not used
-   {LUT_CMD_110,lut22,sizeof(lut22)},  // white
-   {LUT_CMD_111,lut25,sizeof(lut25)},  // red/yellow
-   {0}                                 // End of table
-};
+// The per-temperature LUTs are read from the factory waveform script in SPI
+// flash at run time (see LoadWaveformBlock / SendFlashCmd below).  There is no
+// compiled-in LUT fallback: the script is always present on a factory tag,
+// in the same SPI flash as the calibration and NVRAM the firmware relies on.
 
 static const uint8_t __code gPwrOffEpd[] = {
    1,CMD_POWER_OFF,
@@ -353,13 +207,136 @@ void SendEpdTbl(uint8_t const __code *pData)
    }
 }
 
+// ---- Per-temperature waveform from the factory script in SPI flash --------
+//
+// The script at EEPROM_FACTORY_WAVEFORM_ADR is a list of records:
+//   01 <len16 LE> <cmd> <data...>   send <cmd> with the data (len = 1 + data)
+//   04 <len16 LE> <cmd>             send <cmd> with (len - 1) zero bytes
+//   <xx> <yy> <zz>                  a 3-byte wait (anything not 01 / 04)
+// It opens with a header (magic gWfMagic) and a temperature table at
+// WF_TEMP_TABLE: 9-byte entries, warmest first, each giving a temperature and
+// the offset (relative to WF_SCRIPT_BASE) of that temperature's block,
+// terminated by a <= WF_TEMP_END sentinel.  Each block holds the power setting
+// (01h), PLL (30h) and the VCOM (20h) and colour (22h/21h/25h) LUTs for that
+// temperature.
+//
+// The factory puts the colour LUTs on registers 20/22/21/25; OEPL's drawing.c
+// encodes pixels as 000/110/111, so the factory 22h/25h LUT *contents* are
+// sent to registers 27h/28h.
+#define WF_SCRIPT_BASE   0x2a    // block offsets are relative to this
+#define WF_TEMP_TABLE    0xe1    // 0x20e1 - EEPROM_FACTORY_WAVEFORM_ADR
+#define WF_TEMP_ENTRY    9       // bytes per temperature table entry
+#define WF_TEMP_END      (-100)  // sentinel temperature ending the table
+#define WF_MAX_TEMPS     20      // sanity cap on the table scan
+
+static const uint8_t __code gWfMagic[] = {0xce,0xfa,0xef,0xbe,0x03,0x03};
+static __bit gWfInFlash;
+static __xdata uint16_t gWfBlock;   // offset of the chosen temperature block
+static __xdata uint8_t gWfRec[4];   // a record header being scanned
+
+// Pick the block for Temperature: the warmest entry at or below it, or the
+// coldest entry if Temperature is below the table.  Sets gWfInFlash.
+static void LoadWaveformBlock(int8_t Temperature)
+{
+   uint16_t Ofst = WF_TEMP_TABLE;
+   uint8_t i;
+
+   gWfBlock = 0;
+   eepromRead(EEPROM_FACTORY_WAVEFORM_ADR,gTempBuf320,sizeof(gWfMagic));
+   for(i = 0; i < sizeof(gWfMagic); i++) {
+      if(gTempBuf320[i] != gWfMagic[i]) {
+         gWfInFlash = false;
+         return;
+      }
+   }
+   for(i = 0; i < WF_MAX_TEMPS; i++) {
+      eepromRead(EEPROM_FACTORY_WAVEFORM_ADR + Ofst,gWfRec,3);
+      if((int8_t) gWfRec[0] <= WF_TEMP_END) {
+         break;      // sentinel: keep the coldest real block in gWfBlock
+      }
+      gWfBlock = WF_SCRIPT_BASE + (gWfRec[1] | (uint16_t) gWfRec[2] << 8);
+      if((int8_t) gWfRec[0] <= Temperature) {
+         break;
+      }
+      Ofst += WF_TEMP_ENTRY;
+   }
+   gWfInFlash = gWfBlock != 0;
+}
+
+// Within the chosen block, find factory command Cmd and return the SPI offset
+// of its data (from EEPROM_FACTORY_WAVEFORM_ADR), with *Len set to the data
+// length; returns 0 if the block ends before Cmd is found.
+static uint16_t WfFind(uint8_t Cmd,uint16_t *Len)
+{
+   uint16_t Ofst = gWfBlock;
+
+   for(;;) {
+      eepromRead(EEPROM_FACTORY_WAVEFORM_ADR + Ofst,gWfRec,sizeof(gWfRec));
+      if(gWfRec[0] != 0x01) {
+         return 0;      // a wait or end of the block's command records
+      }
+      *Len = (gWfRec[1] | (uint16_t) gWfRec[2] << 8) - 1;
+      if(gWfRec[3] == Cmd) {
+         return Ofst + 4;
+      }
+      Ofst += 4 + *Len;
+   }
+}
+
+// Send register Reg: Stored bytes from gTempBuf320, zero-filled to Len bytes
+static void SendReg(uint8_t Reg,uint16_t Stored,uint16_t Len)
+{
+   uint16_t j;
+
+   einkSelect();
+   screenPrvSendCommand(Reg);
+   for(j = 0; j < Len; j++) {
+      screenPrvWaitByteSent();
+      U0DBUF = (j < Stored) ? gTempBuf320[j] : 0;
+   }
+   einkDeselect();
+}
+
+// Send controller register Reg from the block's factory command FactoryCmd,
+// zero-filled (or all zero if absent) to Len bytes.  Only call when gWfInFlash.
+static void SendFlashCmd(uint8_t FactoryCmd,uint8_t Reg,uint16_t Len)
+{
+   uint16_t Stored = 0;
+   uint16_t Ofst = WfFind(FactoryCmd,&Stored);
+
+   if(!Ofst) {
+      Stored = 0;
+   }
+   else {
+      if(Stored > Len) {
+         Stored = Len;
+      }
+      eepromRead(EEPROM_FACTORY_WAVEFORM_ADR + Ofst,gTempBuf320,Stored);
+   }
+   SendReg(Reg,Stored,Len);
+}
+
 static void screenInitIfNeeded()
 {
+   __bit EepromWasOn = gEEPROM_PoweredUp;
+   uint8_t Reg;
+
    if(gScreenPowered) {
       return;
    }
    gScreenPowered = true;
-   
+
+// DrawScreen() gets here with the SPI flash asleep, drawImageAtAddress()
+// with it awake and still needing it.
+   powerUp(INIT_EEPROM);
+
+// gTemperature may be from several check-ins ago
+   ADCRead(ADC_CHAN_TEMP);
+   ADCScaleTemperature();
+
+// Read this temperature's waveform block from the factory script
+   LoadWaveformBlock(gTemperature);
+
 // Don't select the EPD yet
    P1 |= P1_EPD_nCS0;
 
@@ -381,14 +358,28 @@ static void screenInitIfNeeded()
    
 // wait for not busy
    while(!EPD_BUSY());
-   
-// we can now talk to it
-   SendEpdTbl(gPwrUpEpd);
-   
+
+// we can now talk to it.  Power setting (voltages) must be set before power
+// on, so take it from the block when present, else the hardcoded 20C value.
+   SendEpdTbl(gBoosterEpd);
+   if(gWfInFlash) {
+      SendFlashCmd(CMD_POWER_SETTING,CMD_POWER_SETTING,4);
+   }
+   else {
+      SendEpdTbl(gPwrSettingEpd);
+   }
+   SendEpdTbl(gPowerOnEpd);
+
 // wait for not busy
    while(!EPD_BUSY());
-   
+
    SendEpdTbl(gSetupEpd);
+   if(gWfInFlash) {
+      SendFlashCmd(CMD_PLL_CONTROL,CMD_PLL_CONTROL,1);
+   }
+   else {
+      SendEpdTbl(gPllEpd);
+   }
 
    einkSelect();
    screenPrvSendCommand(CMD_VCOM_DC_SETTING);
@@ -397,41 +388,30 @@ static void screenInitIfNeeded()
    
    einkSelect();
    screenPrvSendCommand(CMD_VCOM_INTERVAL);
-   screenByteTx(0x77);
+// VBD = 110: the border uses R27h, which holds the white LUT here.  The
+// factory value 0x77 would use R22h, which OEPL's pixel codes leave empty.
+   screenByteTx(0xd7);
    einkDeselect();
-   
-   const struct Atc1441Luts __code *entry;
-   int16_t j;
-   int16_t LutLen;
-   for(entry = gLuts; entry->Cmd; ++entry) {
-      uint8_t command = entry->Cmd;
-      const uint8_t __code *data = entry->Lut;
-      uint8_t stored = entry->LutLen;
-      if(command == 0x20) {
-      // VCOM LUT
-         LutLen = 220;
-      }
-      else if(command == 0x29) {
-      // Xon LUT
-         LutLen = 200;
-      }
-      else {
-      // Color LUT
-         LutLen = 260;
-      }
-      einkSelect();
-      screenPrvSendCommand(command);
-      for(j = 0; j < stored; j++) {
-         screenByteTx(data[j]);
-      }
 
-      if(j < LutLen) {
-      // zero remaining entries
-         while(j++ < LutLen) {
-            screenByteTx(0);
-         }
-      }
-      einkDeselect();
+// The LUTs OEPL's pixel codes don't use, and Xon, are all zero
+   SendReg(0x29,0,200);
+   for(Reg = LUT_CMD_011; Reg <= LUT_CMD_101; Reg++) {
+      SendReg(Reg,0,260);     // 22h to 26h
+   }
+
+   if(gWfInFlash) {
+   // VCOM and colour LUTs from the block.  The factory 22h/25h LUT contents
+   // go to registers 27h/28h to match OEPL's pixel encoding.
+      SendFlashCmd(0x20,0x20,220);          // VCOM
+      SendFlashCmd(0x21,LUT_CMD_000,260);   // black
+      SendFlashCmd(0x22,LUT_CMD_110,260);   // white
+      SendFlashCmd(0x25,LUT_CMD_111,260);   // red/yellow
+   }
+// else: no factory tables.  The LUTs stay empty and drawWithSleep() won't
+// refresh.  Power-on still used the hardcoded power setting and PLL above.
+
+   if(!EepromWasOn) {
+      powerDown(INIT_EEPROM);
    }
    LOG_CONFIG("screenInitIfNeeded");
 }
@@ -482,6 +462,16 @@ void drawWithSleep()
    LOGA("NOT updating display\n");
 #else
    uint16_t Lowest = 0xffff;
+
+// Without the factory script the LUTs are empty, so a refresh would change
+// nothing and only drain the battery.  The stock firmware refuses too.  A
+// compiled-in 20C fallback isn't an option: even compacted it takes about
+// 400 bytes, more than the image has free.
+   if(!gWfInFlash) {
+      einkDeselect();
+      screenShutdown();
+      return;
+   }
 
    LOGA("Updating display\n");
    einkDeselect();
