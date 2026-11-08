@@ -386,7 +386,6 @@ void u64_copy(uint64_t __xdata *dst, const uint64_t __xdata *src) __reentrant __
 	(void)src;
 }
 
-#if !defined(RELEASE_BUILD)
 void u64_copyFromCode(uint64_t __xdata *dst, const uint64_t __code *src) __reentrant __naked 
 {
 	__asm__(
@@ -410,6 +409,7 @@ void u64_copyFromCode(uint64_t __xdata *dst, const uint64_t __code *src) __reent
 	(void)src;
 }
 
+#if !defined(RELEASE_BUILD)
 #pragma callee_saves u64_add
 void u64_add(uint64_t __xdata *lhsP, const uint64_t __xdata *rhsP) __reentrant __naked
 {

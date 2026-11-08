@@ -193,18 +193,3 @@ void PrintCfg(const char __code *Msg)
 }
 #endif
 
-
-#ifdef RELEASE_BUILD
-void ResetFactoryNVRAM()
-{
-// Erase both factory NVRAM sectors: the stock FW moves the NVRAM between
-// them, so a copy left in sector 1 would override the defaults written here
-   eepromErase(EEPROM_FACTORY_NVRAM_ADR,
-               EEPROM_FACTORY_NVRAM_LEN / EEPROM_ERZ_SECTOR_SZ);
-   eepromWrite(0,(const void __xdata*)gDefaultEEPROM,sizeof(gDefaultEEPROM));
-}
-#endif
-
-
-
-

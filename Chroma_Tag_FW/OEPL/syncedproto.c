@@ -827,7 +827,7 @@ static bool downloadImageDataToEEPROM(const struct AvailDataInfo __xdata *__xdat
       }
       eepromErase(getAddressForSlot(xferImgSlot),EEPROM_IMG_SECTORS);
       powerDown(INIT_EEPROM);
-      LOGA("new dl to %d\n", xferImgSlot);
+      LOGA("new 0x%x dl to %d\n",curBlock.type,xferImgSlot);
    // start, or restart the transfer. Copy data from the AvailDataInfo struct, 
    // theand the struct intself. This forces a new transfer
       curBlock.blockId = 0;
@@ -863,11 +863,12 @@ static bool downloadImageDataToEEPROM(const struct AvailDataInfo __xdata *__xdat
    if(xferDataInfo.dataType == DATATYPE_IMG_G5) {
       uint8_t destination = findImageSlot(xferImgSlot);
       uint8_t rawType;
+
       if(destination == 0xFF) {
          powerDown(INIT_EEPROM);
          return false;
       }
-      eepromErase(getAddressForSlot(destination), EEPROM_IMG_SECTORS);
+      eepromErase(getAddressForSlot(destination),EEPROM_IMG_SECTORS);
       /* Slot/header access ends here: the decoder now owns imageScratch. */
       imageScratch.g5.transfer.value.source = getAddressForSlot(xferImgSlot) + sizeof(struct EepromImageHeader);
       imageScratch.g5.transfer.value.remaining = imageSize;
@@ -896,13 +897,16 @@ static bool downloadImageDataToEEPROM(const struct AvailDataInfo __xdata *__xdat
    eepromWrite(getAddressForSlot(xferImgSlot),eih,sizeof(struct EepromImageHeader));
    eepromWrite(getAddressForSlot(xferImgSlot) + offsetof(struct EepromImageHeader, validMarker),
                &markerValid, sizeof(markerValid));
-   if(curBlock.type == DATATYPE_IMG_G5) removeOldSpecial(xferDataInfo.dataTypeArgument, xferImgSlot);
+   if(curBlock.type == DATATYPE_IMG_G5) {
+      removeOldSpecial(xferDataInfo.dataTypeArgument, xferImgSlot);
+   }
    powerDown(INIT_EEPROM);
 
    return true;
 }
 
-// this is related to the function below, but if declared -inside- the function, it gets cleared during sleep...
+// this is related to the function below, but if declared -inside- the 
+// function, it gets cleared during sleep...
 struct imageDataTypeArgStruct __xdata arg;  
 inline bool processImageDataAvail(struct AvailDataInfo __xdata *__xdata avail)
 {
