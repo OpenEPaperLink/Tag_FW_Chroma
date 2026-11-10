@@ -222,7 +222,7 @@ void DrawApplyUpdate()
 {
    SetDrawingDefaults();
    DisplayLogo();
-#if DISPLAY_WIDTH >= 640
+#if DISPLAY_WIDTH >= 400
    gLargeFont = EPD_SIZE_DOUBLE;
 #else
 // Large font won't fit on one line, two looks odd
