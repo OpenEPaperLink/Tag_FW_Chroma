@@ -152,7 +152,7 @@ Blocks 0 and 1 are identical. The yellow panel refreshes 3–4 times slower than
 
 ## LUT format
 
-VCOM and colour LUTs are the Chroma60's: 20 rows of 11 bytes (VCOM) or 13 bytes (colour), each a repeat count, 2 or 4 bytes of 8 phase levels, and 8 frame counts ✅. Up to 13 rows are used.
+VCOM and colour LUTs are the Chroma60's: 20 rows of 11 bytes (VCOM) or 13 bytes (colour), each a repeat count, 2 or 4 bytes of 8 phase levels, and 8 frame counts ✅. Up to 13 rows are used. As on the Chroma60, the LUT ends at its first unused state, and the unused rows only ever follow the used ones.
 
 The **XON LUT** (R29h) is 20 rows of 10 bytes: a repeat count, one XON byte (one bit per phase, MSB first) and 8 frame counts ✅. Per the datasheet, an XON bit of **0 turns all gates on** and 1 is normal gate scanning ✅. Its repeats and frame counts copy the VCOM LUT's.
 

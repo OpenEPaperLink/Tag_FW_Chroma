@@ -18,7 +18,7 @@ The [OEPL wiki's Chroma42 page](https://github.com/OpenEPaperLink/OpenEPaperLink
 
 Firmware addresses refer to the stock CC1110 image of JH10005098 (from a disassembly of that image). The stock image from JC10063658B (a JC1, BWR UC8176 tag) is byte-identical to it: both UC8176 variants run the same stock firmware, and only the waveform in SPI flash differs. The stock image of JC00002947B (a different JC0 tag from the dump) hasn't been analysed.
 
-**Confidence:** ✅ confirmed (by the data, the stock firmware or a datasheet), ⚠️ strong inference, ❓ unknown. There's no UC8176 datasheet in this repo: UC8176 register meanings are marked ⚠️ unless the data settles them.
+**Confidence:** ✅ confirmed (by the data, the stock firmware or a datasheet), ⚠️ strong inference, ❓ unknown. UC8176 register meanings come from the UltraChip UC8176 datasheet (version c_A, revision 0.1, preliminary). That revision has no pages for the LUT registers (R20h–R24h), so the LUT layout is still inferred from the data.
 
 ## JC0: table format
 
@@ -131,6 +131,8 @@ The interpreter (0x1F04) has the same record types as the Chroma60's: `00` end, 
 
 Type `07` differs from the Chroma60's: it sends TRES and the image but **no VDCS**, so VCOM is whatever the init script sets ✅. TRES sends HRES as two bytes because NVRAM `0x14` gives controller type 7 ✅.
 
+After the image, type `07` reads R71h (0x22C3) and checks bit 3, which the datasheet names `data_flag`: "driver has already received all the one frame data" ✅. If it's clear, the image is sent again, up to 3 times. The datasheet says a host must send R11h (DSP) to end the transfer; the stock firmware never does, as on the Chroma60.
+
 A refresh runs init, the temperature block and the refresh script (0x1EB3) ✅.
 
 ### Init (0x2048)
@@ -152,10 +154,18 @@ A refresh runs init, the temperature block and the refresh script (0x1EB3) ✅.
 
 | Register | Value | Meaning | |
 |---|---|---|---|
-| R00h PSR | `2f` | RES = 00 (400×300), LUTs from registers, KWR (3-colour) mode, UD = 1, SHL = 1, SHD_N = 1, RST_N = 1. The OEPL driver uses the same value. | ⚠️ |
-| R41h TSE | `00` | Internal temperature sensor. The stock firmware picks the block itself, using the CC1110's sensor. | ⚠️ |
-| R50h CDI | `57` | VBD = 01, DDX = 01, interval 10 Hsync | ⚠️ |
-| R82h VDCS | `12` | The only VCOM setting: there's no NVRAM VCOM record and type `07` doesn't send one | ✅ |
+| R03h PFS | `00` | VDH and VDL switch off 1 frame after POF (the default) | ✅ |
+| R06h BTST | `0e` | Phase A: 10 ms, strength 2 of 8, minimum off time 3.34 µs | ✅ |
+| | `cd` | Phase B: 40 ms, strength 2, minimum off time 1.54 µs | ✅ |
+| | `26` | Phase C: strength 5, minimum off time 3.34 µs | ✅ |
+| R00h PSR | `2f` | RES = 00 (400×300); REG_EN = 1, LUTs from registers; BWR = 0, black/white/red pixels; UD = 1, scan up; SHL = 1, shift right; SHD_N = 1, booster on; RST_N = 1, no soft reset. The OEPL driver uses the same value. | ✅ |
+| R41h TSE | `00` | Internal temperature sensor, offset +0. The stock firmware picks the block itself, using the CC1110's sensor. | ✅ |
+| R50h CDI | `57` | VBD = 01: the border uses the white LUT. DDX = 01: a B/W bit of 1 selects the white LUT and 0 the black LUT, and a red bit of 1 selects the red LUT. Interval 10 Hsync (the default). | ✅ |
+| R60h TCON | `22` | Source-to-gate and gate-to-source non-overlap both 12 periods of 660 ns (the default) | ✅ |
+| R82h VDCS | `12` | **−1.00 V** (−0.10 V, then −0.05 V per step). The only VCOM setting: there's no NVRAM VCOM record and type `07` doesn't send one | ✅ |
+| R21h | 42 zeros | The datasheet names it LUTWW in B/W mode and gives it no use in B/W/red mode | ✅ |
+
+The BTST bytes are the Chroma60's, where the UC8159 datasheet calls strength `001` reserved. On the UC8176 it's a defined value.
 
 ### Refresh (0x207D)
 
@@ -204,9 +214,13 @@ Every block has these records, then an end record:
 | 11 | 1 | 0x29D7 | `16` | 6.8 V | `3c` | 50 Hz | 3427 | 69 s |
 | 12 | −5 | 0x2AA2 | `17` | 7.0 V | `3c` | 50 Hz | 3443 | 69 s |
 
-**PWR** is `03 00 2b 2b xx` ⚠️: internal DC/DC for source and gate; VDH = +11.0 V and VDL = −11.0 V (`2b`, 2.4 V + 0.2 V per step); byte 5 is **VDHR**, the yellow voltage, on the same scale, rising with cold.
+**PWR** is `03 00 2b 2b xx` ✅:
+- Byte 1 `03`: internal DC/DC for source and gate.
+- Byte 2 `00`: VGH = +16 V and VGL = −16 V; VCOM swings between VDH + VCOM_DC and VDL + VCOM_DC.
+- Bytes 3–4 `2b`: VDH = +11.0 V and VDL = −11.0 V (2.4 V + 0.2 V per step; `2b` is the top of the range).
+- Byte 5 is **VDHR**, the red/yellow voltage, on the same scale, rising with cold.
 
-**PLL** uses the same values as the Chroma60's (`3a`, `19`, `3b`, `3c`). The rates are from the UC8159 table ⚠️. **Frames** are from the LUTs ✅ and **times** are frames ÷ rate ⚠️.
+**PLL** uses the same values as the Chroma60's (`3a`, `19`, `3b`, `3c`). The UC8176's rate table is laid out differently from the UC8159's, but gives the same rates for these four values ✅. **Frames** are from the LUTs ✅ and **times** are frames ÷ rate ⚠️.
 
 Blocks 0 and 1 are identical.
 
@@ -222,6 +236,10 @@ Each LUT is 7 groups of 6 bytes: a level byte (4 phases × 2 bits, MSB first), 4
 | `11` | floating | VDHR |
 
 Only R22h uses level `11`, which is why it's the yellow LUT. R23h ends on VDL and R24h on VDH, the same polarity as the Chroma21 and Chroma29, where the LUT ending on `+` is black. In KWR mode these are the white (R23h) and black (R24h) LUTs ⚠️. The OEPL driver's names for them (`W2B`, `B2B`, `B2W`) are the KW-mode names.
+
+The datasheet doesn't settle the register numbers. Its only list of the LUTs, in the BUSY_N table, reads LUTC, LUTWW/–, LUTWB/LUTW, LUTBW/LUTR, LUTBB/LUTB (B/W-mode name / B/W/red-mode name). Read in register order, that would put red in R23h. The UC8151C datasheet has the same list, yet the OEPL `chroma29_8151` driver loads its red LUT into R22h and white into R23h. So the list isn't in register order, and the data's evidence, VDHR only in R22h, stands.
+
+The UC8151C, UC8154 and UC8159C datasheets all say a LUT ends at its first unused state: the UC8151C at one whose repeat count is 0 or whose frame counts are all 0. The UC8176 revision has no LUT pages. No LUT here has an unused state before a used one, so the frame counts are the same either way.
 
 ### Pixel data
 
@@ -301,14 +319,17 @@ The checksum is only checked when a waveform is downloaded over the radio. The J
 |---|---|---|
 | Waveform | The block for the current temperature | Blocks 0/1 (≥20 °C) at all temperatures |
 | CDI | `57` | `87` |
+| VDCS | `12` (−1.00 V) | `12` for BWY; `1e` (−1.60 V) in `gBWR` |
 | Below −5 °C | Refuses to refresh | Refreshes with the warm block |
+
+Both CDI values give a white border. They differ in DDX: with `87` (DDX = 00) a B/W bit of 0 selects the white LUT and 1 the black LUT, the opposite of the stock `57`. Red is the same in both.
 
 ## Open questions
 
 1. JC0: the index map's G2 entries (see the Chroma29 doc).
 2. JH1: whether any UC8176 tag has a VCOM-measure script.
 3. Confirmation of the colour code at 0x203E / 0x203B. A JC1 (BWR, UC8176) tag should have `01`.
-4. The UC8176 register fields marked ⚠️, which need the datasheet: PWR, CDI, TSE, the LUT levels and the PLL rates.
+4. The UC8176 LUT registers (R20h–R24h): their layout, levels and which one holds red/yellow. The UC8176 datasheet revision these docs use (c_A 0.1) doesn't describe them.
 5. Real refresh times. The figures above are calculated.
 6. The waveform of a JC1 (BWR, UC8176) tag. The OEPL `gBWR` table (PWR `…0c`, PLL `29`) presumably comes from one.
 7. The waveform of a JH0 (BWY, dual UC8154) tag. The wiki says the `chroma42` build's BWR LUTs wash out its yellow.

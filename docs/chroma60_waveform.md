@@ -208,7 +208,7 @@ The VCOM-measure script's `07 01 04 3c` sets VSH_LV to 3.8 V.
 
 ## LUT format
 
-VCOM LUTs are 20 rows of 11 bytes and colour LUTs are 20 rows of 13 bytes. Only the first 8 rows are used in any block, so 82 and 98 bytes are significant; the rest are zero.
+VCOM LUTs are 20 rows of 11 bytes and colour LUTs are 20 rows of 13 bytes. Only the first 8 rows are used in any block, so 82 and 98 bytes are significant; the rest are zero. Per the datasheet the LUT ends when all 20 states are done or at a state whose phase number is 0, and the driver then sends 2 frames of VCOM and data at 0 V. The zero rows only ever follow the used ones.
 
 | LUT | Repeat | Levels | Frames |
 |---|---|---|---|
@@ -437,7 +437,7 @@ Not tested yet:
 ## Open questions
 
 1. PSR byte 2 (`80`) and bit 5, which the datasheet doesn't define.
-2. BTST strength 001, which the datasheet calls reserved.
+2. BTST strength 001, which the datasheet calls reserved. The Chroma42 JH1 waveform sends the same BTST bytes to its UC8176, where 001 is a defined strength ([chroma42_waveform.md](chroma42_waveform.md#init-0x2048)).
 3. 0x2021 and 0x2029, and confirmation of the colour code at 0x203B.
 4. Real refresh times. The figures above are calculated.
 5. Which tags have which format, and whether there are others. It doesn't follow the serial number range: JD00000725 has 2.3, but JD00006303 has 3.3.
