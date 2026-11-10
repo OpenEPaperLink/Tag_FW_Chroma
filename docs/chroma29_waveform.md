@@ -166,6 +166,8 @@ R21h drives black and R22h white, the opposite of the datasheet's names ⚠️. 
 
 The UC8154's 15-byte LUT: 5 groups of `[phase A] [phase B] [repeat]`, each phase byte `level << 6 | frames` ✅. In the B/W stage the levels are 0 V, VSH, VSL and floating. In the red stage they are 0 V, the red VSH (VDPS_LV) and the red VSL. Both VCOM LUTs stay at VCM_DC throughout, apart from JA10023278B's coldest row (see below).
 
+The LUT ends at its first unused group (see [chroma21_waveform.md](chroma21_waveform.md#lut-pool-0x2165-91--15-bytes)). In every LUT that the dumps' index maps load, the unused groups come after the used ones, so the frame counts below cover everything the controller runs.
+
 ## The waveform at 20 °C
 
 `0` = 0 V or VCM_DC, `+` = VSH, `−` = VSL. In the red stage, `+` and `−` are the red voltages.

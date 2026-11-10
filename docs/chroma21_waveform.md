@@ -118,7 +118,7 @@ How it was worked out:
 ## LUT pool (0x2165, 91 × 15 bytes)
 
 ✅ Format from the datasheet (R20h–R27h). Each LUT is a 16-byte command: the register byte plus these 15 data bytes, made of 5 groups of `[phase A] [phase B] [repeat]`.
-- Each phase byte is `level << 6 | frames` (frames 0–63). Repeat is the number of times the group repeats; an all-zero group is unused.
+- Each phase byte is `level << 6 | frames` (frames 0–63). Repeat is the number of times the group repeats; an all-zero group is unused. Per the datasheet the LUT ends when all 5 groups are done or at a group whose phase number is 0, and the driver then sends 2 frames of VCOM and data at 0 V. No LUT that the index map loads has an unused group before a used one.
 - Level meaning depends on the LUT:
 
 | LUT | `00` | `01` | `10` | `11` |
