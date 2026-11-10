@@ -44,7 +44,8 @@ The table positions follow from two counts in the header:
 | 0x2037 | `17` | **VCOM and data interval (R50h)**: border driven normally, DDX = 1, interval 10 Hsync (the datasheet default). The Chroma29 driver uses `0x17` too. | ✅ |
 | 0x2038 | `07 07 0f` | **Booster soft start (R06h)**: phases A and B at 10 ms soft start, strength 1, minimum off time 6.58 µs; phase C at strength 2, 6.58 µs. The Chroma29 driver uses the same values. | ✅ |
 | 0x203B | `03 00` | Probably **power setting (R01h) bytes 1–2**: internal DC/DC for source and gate (`VDS_EN` = `VDG_EN` = 1), RVSHLS = 00; VGH = 20 V, VGL = −19.3 V. `03` and `00` are the datasheet defaults. | ⚠️ |
-| 0x203D | `32 02` | — | ❓ |
+| 0x203D | `32` | Delay before the EPD is powered on, × 100 ms (see [Confirmed from the stock firmware](#confirmed-from-the-stock-firmware)) | ✅ |
+| 0x203E | `02` | Probably the **colour code**: `02` = yellow (`01` = red). Only reported to the host, in the stock `0x1A` (Get displaySize) reply. See [Colour code](chroma29_waveform.md#colour-code-0x203e-and-0x203b). | ⚠️ |
 | 0x203F | `d0 07` | 2000 (u16 LE), perhaps a busy timeout in ms | ❓ |
 | others | `12`, `94`, `30 01` | — | ❓ |
 
@@ -221,9 +222,21 @@ A disassembly of the stock CC1110 firmware (made with `Chroma_Tag_FW/tools/dis80
 
 **Pins** (stock firmware): EPD SPI on USART0 alt 2 (P1.3 SCK, P1.5 SDIN); SPI flash on USART1 alt 1 (P0.3–P0.5) with nCS on P2.0; BUSY (active low) P1.0, nCS P1.1, RESET P1.2, D/C P0.7, nENABLE P0.6. P0.0 is driven low together with nCS for each transfer. The pinout is the same as the Chroma29's.
 
+## What the stock firmware checks
+
+The Chroma21 stock image is byte-identical to the Chroma29's JA10023278B image (MD5 `afdd7022…`): the panel size comes from NVRAM and everything panel-specific from the SPI waveform. It accepts only `04 02` (version compare at 0x2990). At refresh time it:
+- checks the magic and the version;
+- takes the table positions from the header;
+- walks the temperature table up to its entry count;
+- rejects an index map row of `ff` or one past the row count;
+- skips pool index `ff`, but doesn't check other pool indexes against the LUT count;
+- never checks the payload checksum before use.
+
+Details for all boards: [stock_firmware.md](stock_firmware.md#what-the-stock-firmware-checks).
+
 ## Open questions
 
-1. The remaining header bytes: `12`, `94`, `30 01`, and `02` at 0x203E.
+1. The remaining header bytes: `12`, `94` and `30 01`, and confirmation of the colour code at 0x203E.
 2. Whether 0x2025 is a checksum, and over which range.
 ## Confirmed on hardware
 

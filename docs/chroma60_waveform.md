@@ -24,7 +24,7 @@ Register meanings come from the UltraChip UC8159 datasheet (version c_B, revisio
 | 0x2029 | 1 | `00` | ❓ |
 | 0x202A | 16 | Section offsets (see below) | ✅ |
 | 0x203A | 1 | `0x32`: power-on delay × 100 ms (5 s). `0` also means 5 s | ✅ |
-| 0x203B | 1 | `01`: the stock firmware copies it into a radio response; no display use | ❓ |
+| 0x203B | 1 | `01`: the stock firmware copies it into a radio response; no display use. Probably the colour code, red (`02` would be yellow). The JJ (BWY) tag also has `01`, because its waveform is the red one. See [Colour code](chroma29_waveform.md#colour-code-0x203e-and-0x203b). | ⚠️ |
 | 0x203C | 12 | Zero | |
 | 0x2048 | 79 | Init script | ✅ |
 | 0x2097 | 35 | Refresh script | ✅ |
@@ -137,7 +137,7 @@ This doesn't run on a normal refresh. It runs when a radio command sets bit 2 of
 | Register | Value | Meaning | |
 |---|---|---|---|
 | R00h PSR | `ef` | RES = 11 (600×448), UD = 1 (scan up), SHL = 1, SHD_N = 1, RST_N = 1 | ✅ |
-| | | Bits 5–4 are "don't care" in the datasheet. Pimoroni's `inky_uc8159.py` driver says bit 5 selects LUTs from registers instead of flash, which matches how the stock firmware works. | ⚠️ |
+| | | Bits 5–4 are "don't care" in the datasheet. Other UC8159 drivers treat bit 5 as selecting LUTs from registers instead of flash, which matches how the stock firmware works. | ⚠️ |
 | | `80` | Byte 2. The datasheet lists all 8 bits as "don't care". | ❓ |
 | R03h PFS | `00` | Power-off sequence of 1 frame | ✅ |
 | R06h BTST | `0e` | Phase A: 10 ms, strength 001 (reserved), minimum off time 3.43 µs | ✅ |
@@ -333,6 +333,17 @@ The temperature reading is divided by 10 before the block lookup.
 
 The stock firmware does this at boot, so a normal refresh doesn't repeat the 5 s delay.
 
+## What the stock firmware checks
+
+The stock JD/JJ image accepts only format `03 03`: its version compare is at 0x2807, so it would reject the 2.3 waveform of JD00000725. That tag's own stock image hasn't been dumped. Apart from the checks above, the image:
+- checks the magic and the version;
+- takes the section offsets from the header;
+- walks the temperature table until a threshold below −99;
+- uses block offsets and record lengths without checking them;
+- never checks the payload checksum before use.
+
+Details for all boards: [stock_firmware.md](stock_firmware.md#what-the-stock-firmware-checks).
+
 ## Factory NVRAM (same record format as the other Chroma boards)
 
 | Type | Meaning |
@@ -354,7 +365,7 @@ An older JD tag (JD00000725) has format `02 03`, named `8159v2EPD P15D02.00 UC 6
 | Version at 0x2004 | `03 03` | `02 03` |
 | Payload length, checksum | `0x359D`, `0xE3` | `0x1C65`, `0xE4`. The data ends at 0x3C8E; 0x3C8F is the first erased byte. |
 | Init, refresh, VCOM-measure scripts | 0x2048, 0x2097, 0x20BA | 0x204B, 0x209A, 0x20BD |
-| 0x203B | `01` | `00` |
+| 0x203B, probably the colour code ⚠️ | `01` | `00`: not set, as in other older-revision waveforms |
 | VCOM-measure script | Starts with a wait (type `07`); PWR `07 01 04 3c` | No wait; PWR `07 01 06 3c` |
 | Temperature table | 0x20E1, 13 entries and the end marker | 0x20E1, 7 entries and the end marker |
 | Blocks | 13 × 1032 bytes from 0x215F | 7 × 1002 bytes from 0x2129 |
@@ -427,6 +438,6 @@ Not tested yet:
 
 1. PSR byte 2 (`80`) and bit 5, which the datasheet doesn't define.
 2. BTST strength 001, which the datasheet calls reserved.
-3. 0x2021, 0x2029 and 0x203B.
+3. 0x2021 and 0x2029, and confirmation of the colour code at 0x203B.
 4. Real refresh times. The figures above are calculated.
 5. Which tags have which format, and whether there are others. It doesn't follow the serial number range: JD00000725 has 2.3, but JD00006303 has 3.3.
