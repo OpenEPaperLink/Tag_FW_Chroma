@@ -396,14 +396,12 @@ static void sendBlockRequest()
 
 static struct blockRequestAck __xdata *__xdata performBlockRequest() __reentrant
 {
-   static uint32_t __xdata t;
+   static uint32_t __xdata start;
    radioRxEnable(true);
    radioRxFlush();
-   for(uint8_t c = 0; c < 30; c++) {
+   for(uint8_t c = 0; c < BLOCK_REQ_MAX_ATTEMPTS; c++) {
       sendBlockRequest();
-//      t = timerGet() + (TIMER_TICKS_PER_MS * (7UL + c / 10));
-      t = timerGet() + (TIMER_TICKS_PER_SECOND * 30UL);
-      BLOCK_LOG("wait until %lu\n",t);
+      start = timerGet();
       do {
          if(radioRx() > 1) {
             switch(getPacketType()) {
@@ -430,10 +428,13 @@ static struct blockRequestAck __xdata *__xdata performBlockRequest() __reentrant
                   break;
             }
          }
-      } while(timerGet() < t);
-      BLOCK_LOG("%lu done waiting\n",t);
+      } while((timerGet() - start) < (TIMER_TICKS_PER_MS * BLOCK_REQ_REPLY_WINDOW));
+      BLOCK_LOG("no reply to block request %d\n",c);
    }
-   return continueToRX();
+// Nothing at all came back, so the AP isn't there.  Give up on the transfer
+// rather than letting getDataBlock() listen for parts and ask again.
+   PROTO_LOG("no reply to block requests\n");
+   return NULL;
 }
 
 #define f ((struct MacFrameNormal __xdata * __xdata)(outBuffer + 1))
