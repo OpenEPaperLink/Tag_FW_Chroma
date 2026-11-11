@@ -54,14 +54,6 @@ static void screenInitIfNeeded()
    LOG_CONFIG("screenInitIfNeeded");
 }
 
-void screenInitGPIO(bool bActivate)
-{
-// uc8154PowerOn() does the activation
-   if(!bActivate) {
-      uc8154PinsOff();
-   }
-}
-
 void screenShutdown(void)
 {
    if (!gScreenPowered) {

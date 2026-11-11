@@ -75,7 +75,7 @@ void powerUp(const uint8_t parts)
       irqsOn();
       wdtOn();
       wdt10s();
-      PortInit();
+      PortInit(parts);
       u1init();
       radioInit();
       radioSetTxPower(10);
@@ -137,8 +137,12 @@ void doSleep(uint32_t __xdata t)
 // sleepy time
    sleepForMsec(t);
    powerUp(INIT_BASE);
-#if defined(DEBUG_MAX_SLEEP) | defined(DEBUG_SLEEP)
+#if defined(DEBUG_MAX_SLEEP) | defined(DEBUG_SLEEP) | defined(DEBUG_CHIP_CFG)
+#ifdef DEBUG_CHIP_CFG
+   LOG_CONFIG("Awake");
+#else
    LOG("Awake\n");
+#endif
 #endif
 }
 

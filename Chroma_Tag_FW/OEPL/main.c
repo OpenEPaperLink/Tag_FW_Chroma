@@ -340,7 +340,7 @@ void displayLoop()
 
 void main() 
 {  
-   powerUp(INIT_BASE);
+   powerUp(INIT_BASE | INIT_BOOT);
 
 // Save initial battery voltage
    ADCRead(ADC_CHAN_VDD_3);

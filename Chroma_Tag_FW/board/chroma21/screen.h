@@ -56,7 +56,6 @@ extern __bit gAnyYellow;
 #define EPD_SIZE_SINGLE          0
 #define EPD_SIZE_DOUBLE          1
 
-void screenInitGPIO(bool bActivate);
 void screenShutdown(void);
 void screenTxStart();
 

@@ -40,4 +40,7 @@
 #define P2_XOSC32_Q1       0x08
 #define P2_XOSC32_Q2       0x10
 
+#define P0_EPD_PINS (P0_EPD_BS1 | P0_EPD_D_nCMD)
+#define P1_EPD_PINS (P1_EPD_DI | P1_EPD_SCK | P1_EPD_nRESET | P1_EPD_nCS0 | P1_EPD_BUSY)
+
 #endif

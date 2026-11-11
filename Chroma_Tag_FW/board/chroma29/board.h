@@ -13,19 +13,9 @@
 #define DEFAULT_ADC_INTERCEPT  0x02ec
 #define DEFAULT_ADC_SLOPE      0x0a5a
 
-// An all zero SN means the factory NVRAM was lost and reset to the defaults.
-// Treat the tag as having EPD power control then: driving the EPD control
-// pins low (BUSY stays an input, the EPD drives it) is safe on all hardware,
-// while pulling them up on a JA1 tag back powers the
-// switched off EPD (suspected cause of dead EPD rows on tags left like that).
-#define SN_IS_ZERO()    ((mSelfMac[3] | mSelfMac[2] | mSelfMac[1] | mSelfMac[0]) == 0)
-
 #ifndef DISABLE_BARCODES
 #define DISABLE_BARCODES   // not supported on Chroma29 (yet ?)
 #endif
-
-extern const char * __code gBoardName;
-extern const uint8_t __code gDefaultEEPROM[];
 
 //eeprom spi
 #define EEPROM_SIZE              0x0020000L

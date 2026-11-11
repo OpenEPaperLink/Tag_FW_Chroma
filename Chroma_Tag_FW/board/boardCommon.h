@@ -9,6 +9,7 @@
 
 extern uint8_t __xdata mSelfMac[];
 extern char __xdata gMacString[17];
+extern const uint8_t __code gDefaultEEPROM[];
 
 extern __xdata __at (0xfda2) uint8_t gTempBuf320[320];
 extern __bit gEPD_PowerSwitchable;
@@ -51,11 +52,13 @@ void powerPortsDownForSleep(void);
 #pragma callee_saves boardInitStage2
 void boardInitStage2(void);
 
-void PortInit(void);
+void PortInit(const uint8_t parts);
 
 //late, after eeprom
 void InitBcastFrame(void);
 void UpdateBcastFrame(void);
+void screenInitGPIO(void);
+
 
 //some sanity checks
 #include "eeprom.h"

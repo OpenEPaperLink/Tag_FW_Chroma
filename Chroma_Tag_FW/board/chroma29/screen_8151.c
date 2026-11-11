@@ -261,7 +261,7 @@ static void screenInitIfNeeded()
       return;
    }
    gScreenPowered = true;
-   screenInitGPIO(true);
+   screenInitGPIO();
    
 // Don't select the EPD yet
    P1 |= P1_EPD_nCS0;
@@ -305,46 +305,6 @@ static void screenInitIfNeeded()
    LOG_CONFIG("screenInitIfNeeded");
 }
 
-void screenInitGPIO(bool bActivate)
-{
-   if(bActivate) {
-   // Nothing special to do
-      if(!(mSelfMac[3] & 0xf0) && !SN_IS_ZERO()) {
-      // JA0xxxxxxx devices do not implement EPD power control.
-      // 
-      // Configure all control pins as outputs and disable pull-up resistors 
-         P0INP |= P0_EPD_BS1 | P0_EPD_nENABLE | P0_EPD_D_nCMD;
-         P0DIR |= P0_EPD_BS1 | P0_EPD_nENABLE | P0_EPD_D_nCMD;
-         P1INP |= P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI;
-         P1DIR |= P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI;
-      }
-   }
-   else {
-   // Reconfigure the EPD SPI pins as GPIO
-   // Disconnect the P1 EPD SPI pins from USART0 and connect them to GPIO
-      P1SEL &= ~(P1_EPD_SCK | P1_EPD_DI);
-
-      if((mSelfMac[3] & 0xf0) || SN_IS_ZERO()) {
-      // JA1xxxxxxx devices implement EPD power control.
-      // Drive all of the control pins LOW to avoid back powering the EPD via the 
-      // control pins
-         P0 &= ~(P0_EPD_BS1 | P0_EPD_D_nCMD);
-         P1 &= ~(P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI);
-   // Turn off power to the EPD
-         SET_EPD_nENABLE(1);
-      }
-      else {
-      // JA0xxxxxxx devices do not implement EPD power control.
-      // Configure all control pins as inputs and enable pull-up 
-      // resistors to keep them from floating
-         P0INP &= ~(P0_EPD_BS1 | P0_EPD_nCS1 | P0_EPD_nENABLE | P0_EPD_D_nCMD );
-         P0DIR &= ~(P0_EPD_BS1 | P0_EPD_nCS1 | P0_EPD_nENABLE | P0_EPD_D_nCMD );
-         P1INP &= ~(P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI);
-         P1DIR &= ~(P1_EPD_nCS0 | P1_EPD_nRESET | P1_EPD_SCK | P1_EPD_DI);
-      }
-   }
-}
-
 void screenShutdown(void)
 {
    if (!gScreenPowered) {
@@ -355,7 +315,6 @@ void screenShutdown(void)
    while(EPD_BUSY());
    SCR_INIT_LOG("done\n");
    SendEpdTbl(gPwrOffEpd1);
-   screenInitGPIO(false);
    gScreenPowered = false;
 
    LOG_CONFIG("screenShutdown");

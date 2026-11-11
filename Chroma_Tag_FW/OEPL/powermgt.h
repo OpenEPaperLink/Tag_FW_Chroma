@@ -4,7 +4,7 @@
 
 #define INIT_EPD_VOLTREADING  0x80  // Not used by Chroma port
 #define INIT_RADIO            0x40  // Not used by Chroma port
-#define INIT_I2C              0x20  // Not used by Chroma port
+#define INIT_BOOT             0x20  // First boot
 #define INIT_UART             0x10  // Handled dynamically by Chroma port
 #define INIT_EPD              0x08
 #define INIT_EEPROM           0x04

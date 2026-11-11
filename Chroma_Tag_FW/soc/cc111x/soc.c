@@ -81,14 +81,11 @@ void boardInitStage2(void)
    if(gEEpromFailure) {
    // Couldn't get SN from EEPROM, set default
       LOG("Default ");
-      u64_copyFromCode(gTempBuf320,&gDefaultEEPROM[6]);
+      u64_copyFromCode(gTempBuf320,(const uint64_t __code *)&gDefaultEEPROM[6]);
       SetSn();
    }
 
    powerDown(INIT_EEPROM);
-// On some board (Chroma29 for example) we don't know how to deal
-// with the display's GPIO until we know the SN.
-   screenInitGPIO(false);
    irqsOn();
 }
 
