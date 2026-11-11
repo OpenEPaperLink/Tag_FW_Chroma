@@ -44,6 +44,13 @@
 // Now long to wait for transfer complete acks in milliseconds
 #define XFER_COMPLETE_REPLY_WINDOW        150UL
 
+// How long to wait for a reply to each block request in milliseconds, and
+// how many requests to send before giving up on the transfer.  The receiver
+// stays on while waiting, so together they bound how long a block request
+// listens for an AP that has stopped answering.
+#define BLOCK_REQ_REPLY_WINDOW   200UL
+#define BLOCK_REQ_MAX_ATTEMPTS   30
+
 // How often (in seconds, approximately) the tag should do a long datareq (including temperature)
 #define LONG_DATAREQ_INTERVAL 300
 
