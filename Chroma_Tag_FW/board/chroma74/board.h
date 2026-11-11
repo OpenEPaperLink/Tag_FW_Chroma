@@ -1,12 +1,11 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+#include <oepl-definitions.h>
 #include "soc.h"
 #include "u1.h"
 
-#define CHROMA74
-#define BOARD_NAME "Chroma74"
-#define HW_TYPE    0x80
+#define HW_TYPE    CHROMA_74
 
 // Defaults for the factory NVRAM, used in gDefaultEEPROM and when a
 // calibration value is missing from the NVRAM

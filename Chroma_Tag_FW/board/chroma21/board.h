@@ -1,12 +1,12 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+#include <oepl-definitions.h>
 #include "soc.h"
 #include "u1.h"
 
 #define CHROMA21
-#define BOARD_NAME "Chroma21"
-#define HW_TYPE    0x85
+#define HW_TYPE    CHROMA_21
 
 // JG = BWY, the only Chroma21 variant known to use a CC1110.
 // The JB (BWR) Chroma21 probably has a different factory waveform, which

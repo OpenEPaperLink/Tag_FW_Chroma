@@ -1,13 +1,11 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+#include <oepl-definitions.h>
 #include "soc.h"
 #include "u1.h"
 
-#define CHROMA60
-#define BOARD_NAME "Chroma60"
-// The AP needs resources/tagtypes/84.json to recognize the tag.
-#define HW_TYPE    0x84
+#define HW_TYPE    CHROMA_60
 
 // Defaults for the factory NVRAM, used in gDefaultEEPROM and when a
 // calibration value is missing from the NVRAM
