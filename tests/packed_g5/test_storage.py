@@ -79,8 +79,8 @@ class Storage:
             "-DTEST_SCREEN_WIDTH=%d" % width, "-DTEST_SCREEN_HEIGHT=%d" % height,
             "-DTEST_SLOT_BYTES=%d" % slot, "-include", str(HERE / "include/platform.h"),
             "-I" + str(HERE / "include"), "-I" + str(FIRMWARE / "common"),
-            "-I" + str(REPO / "shared"), "-I" + directory,
-            str(HERE / "storage_harness.c"), str(FIRMWARE / "common/g5.c"),
+            "-I" + str(REPO / "shared"), "-I" + directory,"-I" + str(REPO / "g5"),
+            str(HERE / "storage_harness.c"), str(REPO / "g5/g5.c"),
             "-o", str(output)], check=True)
         self.lib = ctypes.CDLL(str(output))
         self.lib.storage_seed.argtypes = [ctypes.c_uint, ctypes.c_uint64, ctypes.c_uint, ctypes.c_uint]
