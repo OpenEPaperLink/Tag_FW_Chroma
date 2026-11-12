@@ -49,7 +49,7 @@ tried it and don't recommend it.
 
 Executive summary;
 
-1. Make sure that SDCC version 4.2.0 is in the path.
+1. Make sure that SDCC version 4.6.0 is in the path.
 2. Change into the .../Tag_FW_Chroma/Chroma_Tag_FW/OEPL subdirectory.
 3. Run make BUILD=\<tag type\>
 
@@ -78,7 +78,7 @@ skip@Dell-5510:~/esl/Tag_FW_Chroma/Chroma_Tag_FW/OEPL$
 
 ## Installing SDCC
 
-The code in this repo was developed and tested using SDCC 4.2.0 on Linux.  
+The code in this repo was developed and tested using SDCC 4.6.0 on Linux.  
 Different SDCC versions can behave VERY differently, i.e. are **BROKEN**
 with respect to this project.  
 

@@ -20,6 +20,7 @@ from reference import encode, integer_row, normalize, pack_bits, pixels_row
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 COMMON = REPO / "Chroma_Tag_FW" / "common"
+G5 = REPO / "g5"
 MODE_COVERAGE = Counter()
 
 
@@ -66,10 +67,11 @@ def compile_library(directory, name, width=640, height=384, slot=0x17000, extra=
                            "-DTEST_SCREEN_WIDTH=%d" % width, "-DTEST_SCREEN_HEIGHT=%d" % height,
                            "-DTEST_SLOT_BYTES=%d" % slot,
                            "-include", str(HERE / "include/platform.h"),
-                           "-I" + str(HERE / "include"), "-I" + str(COMMON)]
+                           "-I" + str(HERE / "include"), "-I" + str(COMMON),
+                           "-I" +  str(G5)]
     output = Path(directory) / (name + ".so")
     subprocess.run(command + list(extra) + ["-shared", "-fPIC", str(HERE / "host_harness.c"),
-                                           str(COMMON / "g5.c"), "-o", str(output)], check=True)
+                                           str(G5 / "g5.c"), "-o", str(output)], check=True)
     return Decoder(output)
 
 
@@ -246,8 +248,9 @@ def run_sanitizers():
                                     "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                                     "-include", str(HERE / "include/platform.h"),
                                     "-I" + str(HERE / "include"), "-I" + str(COMMON),
+                                    "-I" + str(G5),
                                     str(HERE / "sanitize_main.c"), str(HERE / "host_harness.c"),
-                                    str(COMMON / "g5.c"), "-o", str(executable)], check=True)
+                                    str(G5 / "g5.c"), "-o", str(executable)], check=True)
         subprocess.run([str(executable), str(corpus)], check=True)
 
 
