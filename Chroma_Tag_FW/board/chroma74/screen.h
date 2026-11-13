@@ -9,6 +9,10 @@ extern uint8_t __xdata mScreenVcom;
 extern int8_t __xdata mCurTemperature;
 
 #define SCREEN_EXPECTS_VCOM
+// Take VCOM from the factory waveform script instead of NVRAM 0x23, as the
+// stock firmware does (see screenVcomFromWaveform in screen.c)
+#define SCREEN_VCOM_FROM_WAVEFORM
+void screenVcomFromWaveform(void);
 
 // Physical
 #define SCREEN_WIDTH             640L

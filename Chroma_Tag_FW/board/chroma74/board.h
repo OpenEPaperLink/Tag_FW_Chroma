@@ -23,6 +23,11 @@
 #define BWY
 #endif
 
+// No room for the barcode next to the waveform loader in screen.c (LUTs, power
+// setting, PLL and VCOM from the factory script); frees about 1 KB of flash,
+// as on the Chroma60
+#define DISABLE_BARCODES
+
 //eeprom spi
 #define EEPROM_SIZE              0x00100000L
 #define EEPROM_4K_ERASE_OPCODE   0x20
