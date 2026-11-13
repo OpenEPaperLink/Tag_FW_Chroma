@@ -10,13 +10,13 @@ cd "$(dirname "$0")"
 SDCC=${SDCC:-sdcc}
 FW=..
 OUT=build
-TAG_ADR=$(awk '/#define DUMP_TAG_ADR/ {print $3}' spidump.h)
+TAG_ADR=$(awk '/#define DUMP_TAG_ADR/ {sub(/\r$/, "", $3); print $3}' spidump.h)
 
 BOARD=
 if [ "$1" = "--screen" ]; then
    BOARD=$2
    [ -f boards/$BOARD.h ] || { echo "no boards/$BOARD.h"; exit 1; }
-   DRIVER=$(awk '/#define DS_DRIVER/ {print $3}' boards/$BOARD.h)
+   DRIVER=$(awk '/#define DS_DRIVER/ {sub(/\r$/, "", $3); print $3}' boards/$BOARD.h)
    [ -f epd_$DRIVER.c ] || { echo "no epd_$DRIVER.c for $BOARD"; exit 1; }
 fi
 
