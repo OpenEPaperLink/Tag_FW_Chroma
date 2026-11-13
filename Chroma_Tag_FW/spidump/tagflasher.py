@@ -35,6 +35,7 @@ class Flasher:
         """ser: an open serial port (115200 baud), or anything like it"""
         self.ser = ser
         self.erased = False     # the CC1110 flash was erased
+        self.holds = 'its own firmware'     # what the CC1110 flash holds now
         time.sleep(0.1)
         ser.reset_input_buffer()
 
@@ -69,6 +70,24 @@ class Flasher:
             raise Fail(f'flasher answered {c} to command {cmd}')
         return d
 
+    def resync(self, timeout=5):
+        """After an error: True if the flasher still answers.  Skips answers
+        left over from a command the error interrupted."""
+        end = time.time() + timeout
+        try:
+            self.ser.reset_input_buffer()
+            self.send(CMD_GET_VERSION)
+            while time.time() < end:
+                try:
+                    c, _ = self.recv(max(end - time.time(), 0.1))
+                except Fail:
+                    continue
+                if c == CMD_GET_VERSION:
+                    return True
+        except OSError:                 # pyserial's SerialException is one
+            pass
+        return False
+
     def connect(self):
         """Select the external port and power the tag"""
         v = self.cmd(CMD_GET_VERSION)
@@ -101,23 +120,27 @@ class Flasher:
         print(f'  ({time.time() - t:.0f} s)')
         return bytes(out[:length])
 
-    def write(self, image):
+    def write(self, image, what='an image'):
         """Erases the whole chip first"""
         self.select()
         self.erased = True
+        self.holds = f'part of {what}'
         self.cmd(CMD_ERASE_FLASH)
         for i in range(0, len(image), CHUNK):
             self.cmd(CMD_WRITE_FLASH, image[i:i + CHUNK])
             print(f'\r  wrote {min(i + CHUNK, len(image)):5d} bytes', end='', flush=True)
         print()
+        self.holds = f'{what}, written but not verified'
 
     def write_verified(self, image, what):
         print(f'writing {what} ({len(image)} bytes)')
-        self.write(image)
+        self.write(image, what)
         back = self.read(len(image))
         if back != image:
             bad = next((i for i, (x, y) in enumerate(zip(back, image)) if x != y), len(back))
+            self.holds = f'{what}, which failed its verify'
             raise Fail(f'{what}: read back differs at 0x{bad:04x}')
+        self.holds = what
         print(f'  {what} verified')
 
     def read_twice(self, what):
