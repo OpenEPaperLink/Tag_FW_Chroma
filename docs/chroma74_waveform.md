@@ -11,6 +11,8 @@ Both are the script format of the Chroma60 ([chroma60_waveform.md](chroma60_wave
 
 `Chroma_Tag_FW/tools/decode_waveform.py dump.bin [block] [--steps]` prints everything below. Both payloads pass their checksum and end where the header says: the next byte is erased.
 
+A third dump, JM10261788B (BWY, `D17Y02130WY05L_UC8159 74E42e`), has the same layout, offsets and scripts as JM10525366C. Only its LUT timings differ (2507 frames at 20 °C instead of 3062), and its VCOM (see [VCOM](#vcom)). Each panel lot has its own tuned waveform, which is why the OEPL driver reads it from the tag (see [Compared with the OEPL driver](#compared-with-the-oepl-driver)).
+
 Firmware addresses refer to the stock CC1110 image of JL10420082B, version 3.8.0.0 (from a disassembly of that image). Its script interpreter is at 0x205B with its jump table at 0x20F9, at the same entry address as the Chroma60's. The JM10525366C image hasn't been analysed beyond the pixel table (see [Pixel codes](#pixel-codes)).
 
 Register meanings come from the UltraChip UC8159 datasheet (version c_B, revision 0.5).
@@ -97,12 +99,14 @@ The Chroma60's script exactly: type `07`, PWR `07 01 04 3c`, PON, AMV `11`, read
 
 ### VCOM
 
-| | JL10420082B | JM10525366C |
-|---|---|---|
-| NVRAM `0x23` (measured) | `2e`, −2.30 V | `2a`, −2.10 V |
-| Script R82h | `28`, −2.00 V | `2f`, −2.35 V |
+| | JL10420082B | JM10525366C | JM10261788B |
+|---|---|---|---|
+| NVRAM `0x23` (measured) | `2e`, −2.30 V | `2a`, −2.10 V | **`0e`, −0.70 V** |
+| Script R82h | `28`, −2.00 V | `2f`, −2.35 V | `2f`, −2.35 V |
 
 On the Chroma60, type `07` sends the NVRAM VCOM. Here the refresh script then sends its own R82h before PON, so the stock refresh runs with the **script's fixed value**, not the measured one ⚠️. That holds if type `07` sends R82h as the Chroma60's does; the Chroma74 analysis only says it sends R82h when a value is stored.
+
+JM10261788B shows why it matters ✅ (hardware). Its NVRAM value is 1.65 V away from the script's. It works on the stock firmware. With OEPL driving VCOM from NVRAM, black and white switched but yellow never developed: the yellow steps drive only `L` (VSH_LV, 3.4 V), so they depend on VCOM far more than the ±15 V black and white steps. With the script's `2f`, yellow developed normally.
 
 ## Temperature table and blocks
 
@@ -215,7 +219,7 @@ The likely purpose of each step ⚠️:
 - **Steps 8–10** develop yellow (`L`, then a short `−`), while black and white rest at 0 V.
 - **Step 11** tops up black and white.
 
-This is the block the OEPL `chroma74y` build uses.
+Before OEPL read the waveform from the tag, the `chroma74y` build compiled in this block.
 
 ## How it changes with cold
 
@@ -254,17 +258,23 @@ OEPL already reads the serial from `0x2a` before `0x01`.
 
 ## Compared with the OEPL driver
 
-`Chroma_Tag_FW/board/chroma74/screen.c` compiles in one block per build. The stored LUT prefixes match the stock blocks byte for byte; the zero padding differs only in XON rows that have no frames.
+`Chroma_Tag_FW/board/chroma74/screen.c` reads the waveform from the tag's own script, as the Chroma60 driver does. On each refresh it measures the temperature, picks that block from the temperature table, and streams the block's records to the controller. It finds the table through its header offset at 0x202E, because the table is not at the same address on every tag (0x20E7 on the JL, 0x20E2 on the JMs).
 
-| | Stock | OEPL `chroma74y` | OEPL `chroma74r` |
-|---|---|---|---|
-| Waveform | The block for the current temperature | JM blocks 0/1 (≥20 °C) | JL block 0 (≥25 °C) |
-| PLL | Per block | `22`, as block 0 | `3a`, as block 0 |
-| PWR | Per block | `07 01 02 3c`, as block 0 | **`07 01 04 3c`**: VGH/VGL ±19 V and VSH_LV 3.8 V, against block 0's ±17 V and 5.6 V |
-| VCOM | The script's fixed R82h (⚠️, see [VCOM](#vcom)) | NVRAM `0x23` | NVRAM `0x23` |
-| PWS | JL sends `36` | not sent | not sent |
+| | Stock | OEPL |
+|---|---|---|
+| Waveform | The block for the current temperature | The same block |
+| PLL, PWR | Per block | Per block |
+| VCOM | The script's fixed R82h (⚠️, see [VCOM](#vcom)) | The script's refresh R82h; NVRAM `0x23` only when the script is missing |
+| LUT registers | R21h black, R22h white, R25h red/yellow | The same contents on R21h, R27h, R28h, to match OEPL's pixel codes `000`/`110`/`111`; R22h–R26h are zero |
+| XON | The block's R29h | The block's R29h |
+| Border (R50h) | `77`: R22h | `d7`: R27h, white |
+| PWS | JL sends `36` | not sent |
 
-On a red tag between 20 and 25 °C, the stock firmware would use block 1 at 50 Hz, a different waveform, where OEPL uses block 0 at 100 Hz.
+With no script (wrong magic), the driver falls back to the 20 °C power setting and PLL and leaves the LUTs empty, so the panel doesn't refresh.
+
+Older builds compiled one block into each build: JM10525366C blocks 0/1 for `chroma74y`, and JL block 0 for `chroma74r` with a power setting of `07 01 04 3c` (±19 V and VSH_LV 3.8 V) against that block's `07 07 0d 3c` (±17 V, 5.6 V). Both took VCOM from NVRAM `0x23`. On JM10261788B, the compiled yellow steps matched the tag's own, but its NVRAM VCOM stopped yellow from developing (see [VCOM](#vcom)).
+
+Tested on JM10261788B (`chroma74y`): the splash screen shows black, white and yellow ✅. Images from the access point still come without yellow, because the Chroma74 tag type (`0x80`) converts them with a black/white/red palette. `chroma74r` builds but hasn't been run on a red tag.
 
 ## What the stock firmware checks
 
@@ -279,8 +289,8 @@ Its radio download handler (`0x32`, 0x4027) checks the version too. Details for 
 ## Open questions
 
 1. Confirmation of the colour code at 0x203B (`01`, `02`), and whether the Chroma74 firmware also only reports it.
-2. Whether type `07` in the Chroma74 firmware sends the NVRAM VCOM, and so which VCOM the stock refresh really uses.
+2. Whether type `07` in the Chroma74 firmware sends the NVRAM VCOM. JM10261788B (see [VCOM](#vcom)) suggests that the stock refresh uses the script's value, but the firmware hasn't been traced.
 3. The purpose of JM's all-gates-on first step.
-4. Whether the OEPL `chroma74r` power setting (±19 V, 3.8 V) is deliberate. Block 0 asks for ±17 V and 5.6 V.
+4. The OEPL `chroma74r` build on a red tag, now that it reads the tag's waveform.
 5. Real refresh times. The figures above are calculated.
 6. The JM stock image: only its pixel table has been checked.
