@@ -55,9 +55,11 @@ for key in selected:
     values=builds[key]
     print(f"hwid {values['hw_id']} md5 {values['md5']}")
     os.environ['BUILD']= key
-    cmd_line = [ f'{shell}', '-c','make clean;make;make release']
-    subprocess.run(cmd_line)
-    info=json.loads(subprocess.run(['make','build_info'],stdout=subprocess.PIPE).stdout)
+    cmd_line = [ f'{shell}', '-c','make clean && make && make release']
+    # Stop on a failed build: otherwise a stale OTA image from an earlier
+    # build would be hashed and published under the new version.
+    subprocess.run(cmd_line, check=True)
+    info=json.loads(subprocess.run(['make','build_info'],stdout=subprocess.PIPE,check=True).stdout)
     h = hashlib.md5()
     with open(info[0]["OTA_BIN"], "rb") as f:
         h.update(f.read())
