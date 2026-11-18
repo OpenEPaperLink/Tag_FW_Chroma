@@ -103,6 +103,9 @@ void LoadGlobalsFromEEPROM()
    // use default.  TODO actually measure it and save if in NVRAM
       mScreenVcom = DEFAULT_VCOM;
    }
+#ifdef SCREEN_VCOM_FROM_WAVEFORM
+   screenVcomFromWaveform();
+#endif
    NV_DATA_LOG("VCOM: 0x%02x\n", mScreenVcom);
 #endif
    
