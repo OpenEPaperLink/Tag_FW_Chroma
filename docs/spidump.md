@@ -29,6 +29,8 @@ That leaves in `my_tag/`:
 | `spi_dump.bin` | The SPI flash |
 | `readback_<address>.bin` | The raw 32 KB read back of each pass |
 
+A later run into the same directory never overwrites these. It adds `_2`, `_3` and so on to the names of its own files, so `cc1110_backup.bin` stays the first backup made there. A run that reads the same firmware as a backup already in the directory doesn't save it again. Still, give each tag its own directory.
+
 ## Options
 
 | Option | Meaning |
@@ -38,9 +40,9 @@ That leaves in `my_tag/`:
 | `--mode full` | All of `--size`. About 1 minute per pass, plus the backup: 5 passes (about 7 minutes) for 128 KB, 37 passes (about 40 minutes) for 1 MB. |
 | `--mode none` | No dump: back up the firmware, then write `--flash`. |
 | `--size` | SPI flash size for `--mode full`: `128K` (default; Chroma21, Chroma29) or `1M` (Chroma60). |
-| `--restore` | Write the backed up firmware back at the end, also after an error. |
-| `--flash FILE` | Write FILE at the end instead, such as an OEPL `_full_` image. |
-| `--reference FILE` | Stop before erasing anything if the backup differs from FILE. |
+| `--restore` | Write the backed up firmware back at the end, also after an error or Ctrl-C. Refused when the tag doesn't hold a firmware, see below. |
+| `--flash FILE` | Write FILE at the end instead, such as an OEPL `_full_` image or a saved `cc1110_backup.bin`. A spidump image is refused. |
+| `--reference FILE` | Stop before saving or erasing anything if the backup differs from FILE. |
 | `--wait S` | Seconds the dumper runs before it's read back. Default 3. |
 | `--screen BOARD` | Show a test screen after pass 0, see below. |
 | `--screen-wait S` | Seconds to wait for the screen pass. Default 45. |
@@ -52,12 +54,29 @@ Pass 0 holds everything a tag can't do without. On a stock Chroma21 the rest of 
 
 ## What it does
 
-1. Reads the CC1110 flash twice. The two reads must match, and match `--reference` if given. Saves `cc1110_backup.bin`. Nothing is erased before this passes.
+1. Reads the CC1110 flash twice. The two reads must match, and match `--reference` if given. Saves `cc1110_backup.bin`. Nothing is saved or erased before this passes.
 2. For each pass: patches the SPI flash address into the image, erases the chip, writes the image and verifies it, resets the tag so it runs, waits, then reads the 32 KB twice.
 3. Joins the passes and looks for the factory NVRAM and waveforms.
 4. Writes `--restore` or `--flash` and verifies it. After an error `--restore` still runs, and `--flash` runs if the chip was erased.
 
 The exit code is 0 only if all of that worked.
+
+Any error stops steps 1–3 and goes on to step 4: a failed check, a serial or disk error, or Ctrl-C. After an error, step 4 first checks that the flasher still answers. If it doesn't, nothing more is written. The script then says what the CC1110 holds: the dumper, part of an image, or an image that failed its verify. A serial or disk error is shown again with its traceback after step 4, and Ctrl-C stops the script with exit code 130 once the firmware is back. Press Ctrl-C again to stop the restore as well. If the restore also fails, both errors are printed.
+
+### When the tag doesn't hold its firmware
+
+A run without `--restore` or `--flash` leaves the dumper on the tag, and an interrupted run can leave part of the dumper or part of a firmware. Step 1 recognises:
+
+- the dumper, by its tag at 0x0FF0, or the start of a `spidump*.bin` image followed by erased flash
+- the start of a backup already in the output directory (or of the `--flash` file) followed by erased flash
+
+None of these is saved as a backup. `--restore` and `--reference` stop the run before anything is erased, because there's no firmware to put back or check. Write the original back with `--flash`, naming the backup from the first run:
+
+```
+python chroma_spidump.py -p COM12 --mode none --flash my_tag/cc1110_backup.bin -o my_tag
+```
+
+Without `--restore` the run goes on, so a dump can be repeated on a tag that still holds the dumper.
 
 A pass in the CC1110's flash:
 
@@ -123,7 +142,9 @@ Wire the tag's P1.6 (USART1 TX, 115200 baud) to the flasher's GPIO36, cable pin 
 
 **Side effects**
 - Every pass erases the whole CC1110, including its firmware. Without `--restore` or `--flash` the tag is left running the dumper, which stops after the copy, or draws the test screen once.
-- A power loss during a run leaves the dumper or a partial firmware in the CC1110. Reflash `cc1110_backup.bin`. The SPI flash isn't written, so it's safe.
+- A power loss during a run leaves the dumper or a partial firmware in the CC1110. Reflash `cc1110_backup.bin` with `--flash`. The SPI flash isn't written, so it's safe.
+- A partly written firmware is recognised only as the start of a backup in the output directory or of the `--flash` file. One that was being written from somewhere else looks like a firmware, and would be saved as a backup.
+- A power loss right after the erase leaves the CC1110 blank. It reads as all 0xFF, and the run stops with "not answering", so write the backup back with the Tag_Flasher's own tools.
 - CC1110 flash has limited erase cycles. A 1 MB dump uses 38, so avoid repeating it needlessly.
 - The tool only reads the SPI flash, it has no way to write a dump back.
 
