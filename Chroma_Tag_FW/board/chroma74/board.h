@@ -5,7 +5,15 @@
 #include "soc.h"
 #include "u1.h"
 
+// The access point picks the image palette by hardware type, so the yellow
+// (base, chroma74y) and red (HW_VARIANT 1, chroma74r) panels report their own.
+// OTA images are checked by build name, not by type, so a chroma74y tag still
+// reporting CHROMA_74 takes this build.
+#ifndef HW_VARIANT
+#define HW_TYPE    CHROMA_74_BWY
+#else
 #define HW_TYPE    CHROMA_74
+#endif
 
 // Defaults for the factory NVRAM, used in gDefaultEEPROM and when a
 // calibration value is missing from the NVRAM
